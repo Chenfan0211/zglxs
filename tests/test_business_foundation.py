@@ -229,3 +229,12 @@ def test_celery_app_configures_broker_without_connecting():
     assert celery.conf.broker_url == "redis://127.0.0.1:6379/15"
     assert celery.conf.task_always_eager is False
     assert celery.connection_for_read is not None
+
+
+def test_celery_app_reads_redis_url_from_formal_settings_when_omitted(monkeypatch):
+    monkeypatch.setenv("REDIS_URL", "redis://127.0.0.1:6379/16")
+
+    celery = create_celery_app()
+
+    assert celery.conf.broker_url == "redis://127.0.0.1:6379/16"
+    assert celery.conf.result_backend == "redis://127.0.0.1:6379/16"

@@ -107,3 +107,77 @@ git diff --check
 - Task 2 当前没有公开的单事件业务处理方法。为严格限制改动文件范围，消费任务优先支持注入的 `service.process_webhook`；现有 `LaikeSyncService` 则复用其页面处理原语 `_process_page`，订单 upsert 仍由 service 完成。后续若开放正式 public API，可将该兼容分支替换为公开方法。
 - `HmacLaikeClient.fetch_orders` 目前明确抛出“未配置客户端”，没有猜测来客 provider 协议，也不会因测试或默认配置发起外部网络请求。真实 provider 适配需后续基于确认过的官方契约接入。
 - Celery 使用现有 `create_celery_app` 配置壳；本任务验证任务注册、重试和注入边界，不启动真实 Redis worker。
+
+## 审查修复追加（2026-09-12）
+
+### 修复内容
+
+- Worker 消费 claim 复用 `LaikeWebhookEvent.claim_token` 作为消费 fencing token；`queued`、`failed`、`retry_scheduled` 和过期/无时间的 `consuming` claim 都会生成新 token，并原子写入 `consuming`、`processed_at` 和 token。
+- 完成、失败和 dead letter 都要求 `event_id + status=consuming + claim_token` 条件匹配；旧 worker 丢失租约后不能覆盖新 worker。
+- 消费租约按 `Settings.laike_webhook_claim_timeout_seconds` 判定；process claim 和 retry scanner 都能恢复过期/无时间的 `consuming`，未过期租约不会重复消费。
+- retry scanner 使用条件更新 `failed/过期 consuming -> retry_scheduled`，只对成功更新的事件调用 `delay`；`delay` 抛错时仅在事件仍为 `retry_scheduled` 时恢复为 `failed`，避免覆盖已接管的 worker。
+- process task 接受 `retry_scheduled`，并为失败重试覆盖第二次退避 `2` 秒和达到上限后的 `dead_letter`。
+- Celery app 在未显式注入 URL 时读取 `Settings.from_env().redis_url`；配置 Redis 时 broker/backend 均使用该 URL，无 Redis 时继续使用 memory。
+- 多个签名 header 和 event ID 候选明确保留为测试/兼容占位，不代表真实来客协议；真实 HAR 或官方契约确认前不登记 `migrated_routes`，也不记录敏感 payload。
+
+### TDD RED
+
+先追加 worker、scanner 和 Celery 配置回归测试，再运行 focused：
+
+```text
+python -m pytest tests/test_laike_tasks.py tests/test_business_foundation.py -q
+```
+
+结果：
+
+```text
+9 failed, 20 passed
+```
+
+失败点覆盖消费 token 缺失、`consuming` 租约未恢复、旧 claim 未 fencing、scanner 未进入 `retry_scheduled`、delay 异常未恢复、`retry_scheduled` 未消费和 Redis URL 未从 Settings 读取。
+
+### TDD GREEN
+
+实现最小修复后运行同一 focused 测试：
+
+```text
+python -m pytest tests/test_laike_tasks.py tests/test_business_foundation.py -q
+```
+
+结果：
+
+```text
+30 passed in 1.11s
+```
+
+覆盖了第二次退避、max retries dead letter、过期/无时间 consuming 恢复、未过期 consuming 不重复消费、旧 worker fencing、重复 scanner 和双线程并发 scanner。
+
+### 最终验证
+
+完整测试：
+
+```text
+python -m pytest -q
+```
+
+结果：
+
+```text
+118 passed in 1.84s
+```
+
+编译检查：
+
+```text
+python -m compileall -q app alembic tools
+```
+
+通过，无输出。
+
+差异格式检查：
+
+```text
+git diff --check
+```
+
+通过；仅有 Windows 工作区的 LF/CRLF 转换提示，无 whitespace 错误。

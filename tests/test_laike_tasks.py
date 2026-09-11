@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import asyncio
-from types import SimpleNamespace
+from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime, timedelta, timezone
+from threading import Event, Lock
 
 import pytest
 from sqlalchemy import create_engine, select
@@ -45,7 +46,14 @@ def enabled_service(session_factory):
     )
 
 
-def add_event(session_factory, event_id: str, status: str = "queued") -> None:
+def add_event(
+    session_factory,
+    event_id: str,
+    status: str = "queued",
+    *,
+    processed_at: datetime | None = None,
+    claim_token: str | None = None,
+) -> None:
     with session_factory() as session:
         session.add(
             LaikeWebhookEvent(
@@ -58,6 +66,8 @@ def add_event(session_factory, event_id: str, status: str = "queued") -> None:
                 headers_json={},
                 verified=True,
                 status=status,
+                processed_at=processed_at,
+                claim_token=claim_token,
             )
         )
         session.commit()
@@ -154,6 +164,162 @@ def test_process_webhook_processes_queued_event_once(
         ) == "processed"
 
 
+def test_process_claim_writes_consuming_fencing_token_before_processing(
+    session_factory,
+    enabled_service,
+    monkeypatch,
+):
+    add_event(session_factory, "evt-consume-token")
+    observed: list[tuple[str, datetime | None, str | None]] = []
+
+    def process_webhook(event_id, payload):
+        with session_factory() as session:
+            event = session.scalar(
+                select(LaikeWebhookEvent).where(
+                    LaikeWebhookEvent.event_id == event_id
+                )
+            )
+            assert event is not None
+            observed.append((event.status, event.processed_at, event.claim_token))
+        return SyncResult(success=True, processed_count=1)
+
+    enabled_service.process_webhook = process_webhook
+    monkeypatch.setattr(
+        laike_tasks,
+        "_service_factory",
+        lambda: enabled_service,
+    )
+
+    result = laike_tasks.process_laike_webhook.run("evt-consume-token")
+
+    assert result["status"] == "processed"
+    assert observed[0][0] == "consuming"
+    assert observed[0][1] is not None
+    assert observed[0][2] is not None
+    with session_factory() as session:
+        event = session.scalar(
+            select(LaikeWebhookEvent).where(
+                LaikeWebhookEvent.event_id == "evt-consume-token"
+            )
+        )
+        assert event is not None
+        assert event.status == "processed"
+        assert event.claim_token == observed[0][2]
+
+
+def test_unexpired_consuming_event_is_not_claimed_again(
+    session_factory,
+    enabled_service,
+):
+    current_token = "current-consumer-token"
+    add_event(
+        session_factory,
+        "evt-live-consuming",
+        status="consuming",
+        processed_at=datetime.now(timezone.utc),
+        claim_token=current_token,
+    )
+
+    status, payload, claim_token, claimed = (
+        laike_tasks._claim_event_for_processing(
+            enabled_service,
+            "evt-live-consuming",
+        )
+    )
+
+    assert status == "consuming"
+    assert payload is not None
+    assert claim_token is None
+    assert claimed is False
+    with session_factory() as session:
+        event = session.scalar(
+            select(LaikeWebhookEvent).where(
+                LaikeWebhookEvent.event_id == "evt-live-consuming"
+            )
+        )
+        assert event is not None
+        assert event.claim_token == current_token
+
+
+@pytest.mark.parametrize("processed_at", [None, datetime.now(timezone.utc) - timedelta(minutes=10)])
+def test_stale_or_unset_consuming_event_gets_a_new_fencing_token(
+    session_factory,
+    enabled_service,
+    processed_at,
+):
+    old_token = "old-consumer-token"
+    add_event(
+        session_factory,
+        "evt-stale-consuming",
+        status="consuming",
+        processed_at=processed_at,
+        claim_token=old_token,
+    )
+
+    status, payload, claim_token, claimed = (
+        laike_tasks._claim_event_for_processing(
+            enabled_service,
+            "evt-stale-consuming",
+        )
+    )
+
+    assert status == "consuming"
+    assert payload is not None
+    assert claimed is True
+    assert claim_token is not None
+    assert claim_token != old_token
+    with session_factory() as session:
+        event = session.scalar(
+            select(LaikeWebhookEvent).where(
+                LaikeWebhookEvent.event_id == "evt-stale-consuming"
+            )
+        )
+        assert event is not None
+        assert event.status == "consuming"
+        assert event.processed_at is not None
+        assert event.claim_token == claim_token
+
+
+def test_old_consumer_cannot_finish_after_stale_claim_is_replaced(
+    session_factory,
+    enabled_service,
+):
+    old_token = "old-consumer-token"
+    add_event(
+        session_factory,
+        "evt-fenced-consumer",
+        status="consuming",
+        processed_at=datetime.now(timezone.utc) - timedelta(minutes=10),
+        claim_token=old_token,
+    )
+
+    _, _, new_token, claimed = laike_tasks._claim_event_for_processing(
+        enabled_service,
+        "evt-fenced-consumer",
+    )
+
+    assert claimed is True
+    assert new_token is not None
+    assert (
+        laike_tasks._set_event_status(
+            enabled_service,
+            "evt-fenced-consumer",
+            "processed",
+            claim_token=old_token,
+        )
+        is False
+    )
+    with session_factory() as session:
+        event = session.scalar(
+            select(LaikeWebhookEvent).where(
+                LaikeWebhookEvent.event_id == "evt-fenced-consumer"
+            )
+        )
+        assert event is not None
+        assert event.status == "consuming"
+        assert event.claim_token == new_token
+
+
 def test_process_webhook_retries_with_exponential_backoff_on_failure(
     session_factory,
     enabled_service,
@@ -190,6 +356,73 @@ def test_process_webhook_retries_with_exponential_backoff_on_failure(
                 LaikeWebhookEvent.event_id == "evt-retry"
             )
         ) == "failed"
+
+
+def test_process_webhook_uses_second_exponential_backoff(
+    session_factory,
+    enabled_service,
+    monkeypatch,
+):
+    add_event(session_factory, "evt-second-retry")
+    monkeypatch.setattr(
+        laike_tasks,
+        "_service_factory",
+        lambda: enabled_service,
+    )
+    monkeypatch.setattr(
+        enabled_service,
+        "_process_page",
+        lambda page: _failed_page(),
+    )
+    retry_calls: list[dict] = []
+
+    def fake_retry(**kwargs):
+        retry_calls.append(kwargs)
+        raise RuntimeError("retry requested")
+
+    monkeypatch.setattr(laike_tasks.process_laike_webhook, "retry", fake_retry)
+
+    laike_tasks.process_laike_webhook.push_request(retries=1)
+    try:
+        with pytest.raises(RuntimeError, match="retry requested"):
+            laike_tasks.process_laike_webhook.run("evt-second-retry")
+    finally:
+        laike_tasks.process_laike_webhook.pop_request()
+
+    assert retry_calls[0]["countdown"] == 2
+    assert retry_calls[0]["max_retries"] == 2
+
+
+def test_process_webhook_dead_letters_after_max_retries(
+    session_factory,
+    enabled_service,
+    monkeypatch,
+):
+    add_event(session_factory, "evt-dead-letter")
+    monkeypatch.setattr(
+        laike_tasks,
+        "_service_factory",
+        lambda: enabled_service,
+    )
+    monkeypatch.setattr(
+        enabled_service,
+        "_process_page",
+        lambda page: _failed_page(),
+    )
+
+    laike_tasks.process_laike_webhook.push_request(retries=2)
+    try:
+        result = laike_tasks.process_laike_webhook.run("evt-dead-letter")
+    finally:
+        laike_tasks.process_laike_webhook.pop_request()
+
+    assert result == {"status": "dead_letter", "event_id": "evt-dead-letter"}
+    with session_factory() as session:
+        assert session.scalar(
+            select(LaikeWebhookEvent.status).where(
+                LaikeWebhookEvent.event_id == "evt-dead-letter"
+            )
+        ) == "dead_letter"
 
 
 def test_reconcile_task_is_noop_when_flag_is_disabled(
@@ -239,6 +472,134 @@ def test_retry_failed_only_enqueues_failed_events_when_enabled(
 
     assert result == {"status": "queued", "count": 1}
     assert enqueued == ["evt-failed"]
+
+
+def test_retry_scanner_atomically_schedules_each_failed_event_once(
+    session_factory,
+    enabled_service,
+    monkeypatch,
+):
+    add_event(session_factory, "evt-scan-failed", status="failed")
+    add_event(
+        session_factory,
+        "evt-scan-stale",
+        status="consuming",
+        processed_at=datetime.now(timezone.utc) - timedelta(minutes=10),
+        claim_token="stale-token",
+    )
+    add_event(
+        session_factory,
+        "evt-scan-live",
+        status="consuming",
+        processed_at=datetime.now(timezone.utc),
+        claim_token="live-token",
+    )
+    scheduled: list[str] = []
+
+    monkeypatch.setattr(laike_tasks, "_service_factory", lambda: enabled_service)
+
+    def delay(event_id):
+        with session_factory() as session:
+            assert session.scalar(
+                select(LaikeWebhookEvent.status).where(
+                    LaikeWebhookEvent.event_id == event_id
+                )
+            ) == "retry_scheduled"
+        scheduled.append(event_id)
+
+    monkeypatch.setattr(laike_tasks.process_laike_webhook, "delay", delay)
+
+    first = laike_tasks.retry_failed_laike_events.run()
+    second = laike_tasks.retry_failed_laike_events.run()
+
+    assert first == {"status": "queued", "count": 2}
+    assert second == {"status": "queued", "count": 0}
+    assert scheduled == ["evt-scan-failed", "evt-scan-stale"]
+
+
+def test_concurrent_retry_scanners_enqueue_a_failed_event_once(
+    session_factory,
+    enabled_service,
+    monkeypatch,
+):
+    add_event(session_factory, "evt-concurrent-scan", status="failed")
+    delay_started = Event()
+    release_delay = Event()
+    scheduled: list[str] = []
+    scheduled_lock = Lock()
+
+    monkeypatch.setattr(laike_tasks, "_service_factory", lambda: enabled_service)
+
+    def delay(event_id):
+        with scheduled_lock:
+            scheduled.append(event_id)
+        delay_started.set()
+        assert release_delay.wait(timeout=5)
+
+    monkeypatch.setattr(laike_tasks.process_laike_webhook, "delay", delay)
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        futures = [
+            executor.submit(laike_tasks.retry_failed_laike_events.run)
+            for _ in range(2)
+        ]
+        assert delay_started.wait(timeout=5)
+        release_delay.set()
+        results = [future.result(timeout=5) for future in futures]
+
+    assert sum(result["count"] for result in results) == 1
+    assert scheduled == ["evt-concurrent-scan"]
+
+
+def test_retry_scanner_restores_failed_when_delay_raises(
+    session_factory,
+    enabled_service,
+    monkeypatch,
+):
+    add_event(session_factory, "evt-delay-error", status="failed")
+    monkeypatch.setattr(laike_tasks, "_service_factory", lambda: enabled_service)
+
+    def failing_delay(event_id):
+        raise RuntimeError("broker unavailable")
+
+    monkeypatch.setattr(
+        laike_tasks.process_laike_webhook,
+        "delay",
+        failing_delay,
+    )
+
+    result = laike_tasks.retry_failed_laike_events.run()
+
+    assert result["count"] == 0
+    with session_factory() as session:
+        assert session.scalar(
+            select(LaikeWebhookEvent.status).where(
+                LaikeWebhookEvent.event_id == "evt-delay-error"
+            )
+        ) == "failed"
+
+
+def test_process_webhook_consumes_retry_scheduled_event(
+    session_factory,
+    enabled_service,
+    monkeypatch,
+):
+    add_event(session_factory, "evt-retry-scheduled", status="retry_scheduled")
+    monkeypatch.setattr(
+        laike_tasks,
+        "_service_factory",
+        lambda: enabled_service,
+    )
+
+    result = laike_tasks.process_laike_webhook.run("evt-retry-scheduled")
+
+    assert result["status"] == "processed"
+    with session_factory() as session:
+        assert session.scalar(
+            select(LaikeWebhookEvent.status).where(
+                LaikeWebhookEvent.event_id == "evt-retry-scheduled"
+            )
+        ) == "processed"
 
 
 def test_retry_failed_is_noop_when_webhook_flag_is_disabled(

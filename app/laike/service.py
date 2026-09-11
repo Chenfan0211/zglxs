@@ -283,6 +283,8 @@ class LaikeSyncService:
         payload: Mapping[str, Any],
         raw_body: bytes,
     ) -> str:
+        # Compatibility placeholders only; do not treat these as the real
+        # provider contract until HAR or official documentation confirms it.
         normalized_headers = {
             key.lower().replace("_", "-"): value for key, value in headers.items()
         }

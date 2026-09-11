@@ -30,7 +30,8 @@ class LaikeClient(Protocol):
 class HmacLaikeClient:
     """Default boundary client for signature verification without provider calls."""
 
-    _SIGNATURE_HEADERS = (
+    # Compatibility placeholders only; confirm the real provider contract first.
+    _COMPATIBILITY_SIGNATURE_HEADERS = (
         "x-laike-signature",
         "x-webhook-signature",
         "x-signature",
@@ -57,7 +58,7 @@ class HmacLaikeClient:
         signature = next(
             (
                 normalized_headers[name].strip()
-                for name in self._SIGNATURE_HEADERS
+                for name in self._COMPATIBILITY_SIGNATURE_HEADERS
                 if normalized_headers.get(name)
             ),
             None,
@@ -90,4 +91,3 @@ class HmacLaikeClient:
         end_time: str | None = None,
     ) -> LaikePage:
         raise RuntimeError("laike order client is not configured")
-
