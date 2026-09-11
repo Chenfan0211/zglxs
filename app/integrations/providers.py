@@ -31,9 +31,21 @@ class WebhookProvider(Protocol):
 
 
 class MockProvider:
-    def __init__(self, name: str, fail: bool = False) -> None:
+    _FAILURE_CODES = {
+        "timeout": "mock_timeout",
+        "rate_limited": "mock_rate_limited",
+        "signature_invalid": "mock_signature_invalid",
+        "duplicate": "mock_duplicate",
+    }
+
+    def __init__(
+        self,
+        name: str,
+        fail: bool = False,
+        outcome: str | None = None,
+    ) -> None:
         self._name = name
-        self._fail = fail
+        self._outcome = outcome or ("failure" if fail else "success")
         self.last_request_summary: dict[str, Any] = {}
 
     async def send(self, payload: Mapping[str, Any]) -> ProviderResult:
@@ -42,8 +54,9 @@ class MockProvider:
             for key, value in payload.items()
             if key in {"event", "operation", "source"}
         }
+        code = self._FAILURE_CODES.get(self._outcome, "mock_failure")
         return ProviderResult(
-            ok=not self._fail,
-            code="mock_failure" if self._fail else "mock_ok",
+            ok=self._outcome == "success",
+            code="mock_ok" if self._outcome == "success" else code,
             request_id=f"mock-{self._name}-001",
         )

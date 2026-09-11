@@ -54,3 +54,23 @@ async def test_mock_provider_does_not_retain_sensitive_payload_fields():
     await provider.send(payload)
 
     assert provider.last_request_summary == {"event": "DEMO"}
+
+
+@pytest.mark.parametrize(
+    ("outcome", "code"),
+    [
+        ("timeout", "mock_timeout"),
+        ("rate_limited", "mock_rate_limited"),
+        ("signature_invalid", "mock_signature_invalid"),
+        ("duplicate", "mock_duplicate"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_mock_provider_supports_external_failure_scenarios(outcome, code):
+    result = await MockProvider("laike", outcome=outcome).send({"event": "DEMO"})
+
+    assert result == ProviderResult(
+        ok=False,
+        code=code,
+        request_id=f"mock-laike-001",
+    )

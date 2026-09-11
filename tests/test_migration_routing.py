@@ -143,6 +143,43 @@ async def test_php_proxy_preserves_request_and_upstream_response():
 
 
 @pytest.mark.asyncio
+async def test_php_proxy_preserves_response_headers_and_cookies():
+    async def upstream(request):
+        return httpx.Response(
+            200,
+            headers=[
+                ("content-type", "application/json"),
+                ("set-cookie", "session_id=PHP-DEMO; Path=/; HttpOnly"),
+                ("x-baseline-route", "Demo/list"),
+            ],
+            content=b'{"source":"php"}',
+        )
+
+    proxy = PhpBaselineProxy(
+        "http://127.0.0.1:18085",
+        timeout=1,
+        transport=httpx.MockTransport(upstream),
+    )
+    app = create_app(
+        Settings(
+            app_env="test",
+            database_url=None,
+            php_baseline_url="http://127.0.0.1:18085",
+            php_baseline_timeout_seconds=1,
+        ),
+        php_proxy=proxy,
+    )
+
+    response = await request(app, "/apiv1/Demo/list")
+
+    assert response.status_code == 200
+    assert response.headers["x-baseline-route"] == "Demo/list"
+    assert response.headers["content-type"] == "application/json"
+    assert response.headers["content-length"] == "16"
+    assert response.cookies["session_id"] == "PHP-DEMO"
+
+
+@pytest.mark.asyncio
 async def test_php_proxy_returns_stable_error_when_baseline_is_unavailable():
     async def upstream(request):
         raise httpx.ConnectError("offline", request=request)

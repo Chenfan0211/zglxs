@@ -1,0 +1,16 @@
+[Unit]
+Description=Douyin Order Python Worker
+After=network.target
+
+[Service]
+Type=simple
+User=douyin-order
+Group=douyin-order
+WorkingDirectory=/srv/douyin-order-python/current
+EnvironmentFile=/srv/douyin-order-python/shared/env/api.env
+ExecStart=/srv/douyin-order-python/current/.venv/bin/celery -A app.worker.tasks:celery_app worker --loglevel=INFO
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

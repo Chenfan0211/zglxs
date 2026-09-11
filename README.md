@@ -17,11 +17,18 @@ python -m pip install -e ".[test]"
 ```powershell
 python -m pytest -q
 python -m uvicorn app.main:app --host 127.0.0.1 --port 18083
+python -m tools.inspect_wwwroot C:\path\to\wwwroot.zip
+python -m tools.frontend_bundle C:\path\to\wwwroot.zip .\frontend
 ```
 
 存活检查地址为 `http://127.0.0.1:18083/internal/health/live`。
 
 接口迁移登记见 `contracts/api-manifest.json`。没有完成 PHP 基线对比的业务接口不会被标记为已迁移。
+
+部署模板位于 `deploy/`。发布服务器使用 `/srv/douyin-order-python/releases/<timestamp>` 和 `current` 符号链接；当前工作区只生成模板，不会自动修改服务器。
+
+Linux 发布后可执行 `deploy/scripts/check-deploy.sh` 做前端、API、Nginx 和
+Systemd 验收。该脚本默认检查 `18084` 公网入口和 `18083` 本机 API 入口。
 
 ## 配置安全
 

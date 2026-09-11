@@ -1,0 +1,16 @@
+[Unit]
+Description=Douyin Order Python API
+After=network.target
+
+[Service]
+Type=simple
+User=douyin-order
+Group=douyin-order
+WorkingDirectory=/srv/douyin-order-python/current
+EnvironmentFile=/srv/douyin-order-python/shared/env/api.env
+ExecStart=/srv/douyin-order-python/current/.venv/bin/gunicorn app.main:app -k uvicorn.workers.UvicornWorker --bind 127.0.0.1:18083 --workers 2
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

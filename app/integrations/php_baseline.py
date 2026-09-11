@@ -4,6 +4,7 @@ from fastapi import HTTPException, Request, Response
 
 _HOP_BY_HOP_HEADERS = {
     "connection",
+    "content-encoding",
     "content-length",
     "host",
     "keep-alive",
@@ -54,9 +55,17 @@ class PhpBaselineProxy:
                 detail="PHP baseline unavailable",
             ) from exc
 
-        content_type = upstream.headers.get("content-type")
-        return Response(
+        forwarded_headers = [
+            (key.encode("latin-1"), value.encode("latin-1"))
+            for key, value in upstream.headers.multi_items()
+            if key.lower() not in _HOP_BY_HOP_HEADERS
+        ]
+        forwarded_headers.append(
+            (b"content-length", str(len(upstream.content)).encode("ascii"))
+        )
+        response = Response(
             content=upstream.content,
             status_code=upstream.status_code,
-            media_type=None if content_type is None else content_type,
         )
+        response.raw_headers = forwarded_headers
+        return response

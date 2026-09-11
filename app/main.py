@@ -3,7 +3,7 @@ import inspect
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from app.api.health import create_health_router
+from app.api.health import create_health_router, require_loopback
 from app.api.migration import MigrationRegistry
 from app.core.settings import Settings
 from app.db.session import Database
@@ -33,6 +33,18 @@ def create_app(
     app.state.migration_registry = resolved_registry
     app.state.php_baseline_proxy = resolved_php_proxy
     app.include_router(create_health_router(database))
+
+    @app.get(
+        "/internal/migration/status",
+        dependencies=[],
+    )
+    async def migration_status(request: Request):
+        require_loopback(request)
+        return {
+            "migrated_route_count": len(resolved_registry.routes()),
+            "fallback_enabled": resolved_php_proxy is not None,
+            "manifest_path": "contracts/api-manifest.json",
+        }
 
     @app.api_route(
         "/apiv1/{controller}/{action}",

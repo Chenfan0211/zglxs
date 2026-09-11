@@ -11,6 +11,15 @@ class Settings(BaseSettings):
     )
 
     app_env: str = Field(default="development", validation_alias="APP_ENV")
+    app_name: str = Field(
+        default="douyin-order-python",
+        validation_alias="APP_NAME",
+    )
+    log_level: str = Field(default="INFO", validation_alias="LOG_LEVEL")
+    environment: str = Field(
+        default="development",
+        validation_alias="ENVIRONMENT",
+    )
     database_url: str | None = Field(default=None, validation_alias="DATABASE_URL")
     php_baseline_url: str | None = Field(
         default=None,
@@ -21,8 +30,9 @@ class Settings(BaseSettings):
         validation_alias="PHP_BASELINE_TIMEOUT_SECONDS",
         gt=0,
     )
+    redis_url: str | None = Field(default=None, validation_alias="REDIS_URL")
 
-    @field_validator("database_url", "php_baseline_url", mode="before")
+    @field_validator("database_url", "php_baseline_url", "redis_url", mode="before")
     @classmethod
     def blank_string_to_none(cls, value: object) -> object:
         if isinstance(value, str):

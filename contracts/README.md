@@ -5,6 +5,7 @@
 - `discovered_routes`：从前端网络请求、PHP 基线和运行日志中发现但尚未完成对比的接口。
 - `migrated_routes`：已经完成 PHP/Python 响应和数据库副作用对比、允许由 Python 接管的接口。
 - `fallback_enabled_by_default`：默认必须为 `false`；只有部署环境显式配置 `PHP_BASELINE_URL` 才开启回退。
+- `route_record_template`：登记接口时必须复制并填写的最小结构。
 
 每个真实业务接口加入 `migrated_routes` 前，必须记录：
 

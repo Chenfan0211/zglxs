@@ -23,3 +23,13 @@ class MigrationRegistry:
 
     def resolve(self, controller: str, action: str, method: str) -> Handler | None:
         return self._handlers.get((controller, action, method.upper()))
+
+    def routes(self) -> list[dict[str, str]]:
+        return [
+            {
+                "controller": controller,
+                "action": action,
+                "method": method,
+            }
+            for controller, action, method in sorted(self._handlers)
+        ]

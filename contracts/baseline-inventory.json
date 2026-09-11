@@ -1,0 +1,12 @@
+{
+  "source": "C:/Users/Administrator/OneDrive/Desktop/wwwroot.zip",
+  "business_php_files": 61,
+  "encrypted_php_files": 61,
+  "business_sql_files": [],
+  "frontend_uses_absolute_api": true,
+  "blockers": [
+    "encrypted_business_php",
+    "missing_business_schema"
+  ],
+  "generated_by": "python -m tools.inspect_wwwroot"
+}
