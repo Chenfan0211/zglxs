@@ -159,7 +159,7 @@ class HmacLaikeClient:
                 prefix=prefix,
             )
 
-    def verify_webhook(
+    async def verify_webhook(
         self,
         headers: Mapping[str, str],
         raw_body: bytes,

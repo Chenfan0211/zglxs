@@ -398,13 +398,16 @@ async def test_default_hmac_client_result_is_safe_to_await():
     signature = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
     client = HmacLaikeClient(secret)
 
-    result = client.verify_webhook(
+    assert inspect.iscoroutinefunction(client.verify_webhook)
+
+    result = await client.verify_webhook(
         {"X-Laike-Signature": f"sha256={signature}"},
         body,
     )
 
     assert result.verified is True
-    assert (await result).valid is True
+    assert result.valid is True
+    assert not hasattr(result, "__await__")
 
 
 @pytest.mark.asyncio
@@ -418,7 +421,8 @@ async def test_default_hmac_client_order_method_is_awaitable():
         await pending
 
 
-def test_main_default_hmac_client_uses_only_configured_signature_header():
+@pytest.mark.asyncio
+async def test_main_default_hmac_client_uses_only_configured_signature_header():
     settings = Settings(
         _env_file=None,
         database_url=None,
@@ -434,14 +438,16 @@ def test_main_default_hmac_client_uses_only_configured_signature_header():
         hashlib.sha256,
     ).hexdigest()
 
-    configured = app.state.laike_client.verify_webhook(
+    assert inspect.iscoroutinefunction(app.state.laike_client.verify_webhook)
+
+    configured = await app.state.laike_client.verify_webhook(
         {
             "X-Custom-Signature": f"sha256={signature}",
             "X-Custom-Event-Id": "evt-custom",
         },
         body,
     )
-    generic = app.state.laike_client.verify_webhook(
+    generic = await app.state.laike_client.verify_webhook(
         {"Signature": f"sha256={signature}"},
         body,
     )

@@ -80,13 +80,6 @@ class WebhookVerification(BaseModel):
             return {"verified": self.valid, "reason": self.reason}
         return result
 
-    def __await__(self):
-        async def return_self() -> WebhookVerification:
-            return self
-
-        return return_self().__await__()
-
-
 class NormalizedOrder(BaseModel):
     model_config = ConfigDict(
         extra="forbid",

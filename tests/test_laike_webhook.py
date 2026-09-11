@@ -63,22 +63,23 @@ def signed_headers(secret: str, body: bytes, event_id: str = "evt-001") -> dict[
     }
 
 
-def test_hmac_client_uses_sha256_and_rejects_missing_or_wrong_signature():
+@pytest.mark.asyncio
+async def test_hmac_client_uses_sha256_and_rejects_missing_or_wrong_signature():
     secret = "webhook-secret"
     body = b'{"event_id":"evt-hmac"}'
     client = HmacLaikeClient(secret)
     headers = signed_headers(secret, body, event_id="evt-hmac")
 
-    assert client.verify_webhook(headers, body).verified is True
-    assert client.verify_webhook({}, body).verified is False
-    assert (
-        client.verify_webhook(
-            {"X-Laike-Signature": "sha256=wrong"},
-            body,
-        ).verified
-        is False
+    assert (await client.verify_webhook(headers, body)).verified is True
+    assert (await client.verify_webhook({}, body)).verified is False
+    wrong = await client.verify_webhook(
+        {"X-Laike-Signature": "sha256=wrong"},
+        body,
     )
-    assert HmacLaikeClient(None).verify_webhook(headers, body).verified is False
+    assert wrong.verified is False
+    assert (
+        await HmacLaikeClient(None).verify_webhook(headers, body)
+    ).verified is False
 
 
 async def request(

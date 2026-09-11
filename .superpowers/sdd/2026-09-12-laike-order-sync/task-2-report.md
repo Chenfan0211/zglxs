@@ -142,3 +142,54 @@ assert settings.laike_max_retries == 3
 ```
 
 其余来客相关测试通过；未修改 Task 5 文件、加密 PHP 或该任务外的 settings/test 文件。
+
+## Review Fix Round 2
+
+限定 finding：`HmacLaikeClient.verify_webhook` 必须是真正的 async 方法并严格满足 `LaikeClient` Protocol。
+
+### RED
+
+先调整 `tests/test_laike_protocols.py` 与受影响的旧 HMAC 测试调用为真实 `await`，并增加：
+
+- `inspect.iscoroutinefunction(client.verify_webhook)`
+- `inspect.iscoroutinefunction(app.state.laike_client.verify_webhook)`
+- 结果对象不再提供 `__await__`
+
+运行：
+
+```text
+python -m pytest tests/test_laike_protocols.py tests/test_laike_webhook.py -q
+```
+
+结果：
+
+```text
+2 failed, 46 passed
+```
+
+失败均为 `inspect.iscoroutinefunction(...) == False`，确认失败来自 HMAC 方法仍是同步函数。
+
+### GREEN
+
+- 将 `HmacLaikeClient.verify_webhook` 改为真正的 `async def`。
+- 删除 `WebhookVerification.__await__` 伪 await 实现。
+- 更新旧同步直接调用测试为异步 await 调用。
+- 保留 service/router 的 `_maybe_await`，继续兼容同步测试 double。
+
+最终验证：
+
+```text
+python -m pytest tests/test_laike_protocols.py -q
+34 passed
+
+python -m pytest -q
+177 passed
+
+python -m compileall -q app/laike app/main.py tests/test_laike_protocols.py
+compileall passed
+
+git diff --check
+通过；仅有 LF/CRLF 提示。
+```
+
+未修改 Task 5 文件、加密 PHP 或其他无关生产文件。
