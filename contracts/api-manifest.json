@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "fallback_enabled_by_default": false,
   "migrated_routes": [],
   "discovered_routes": [],
@@ -13,6 +13,16 @@
       "body": {},
       "headers": []
     },
+    "identifiers": {
+      "order_id": null,
+      "subject_id": null,
+      "product_id": null
+    },
+    "pagination": {
+      "cursor": null,
+      "start_time": null,
+      "end_time": null
+    },
     "response": {
       "status_code": 200,
       "json": {}
@@ -20,6 +30,7 @@
     "errors": [],
     "permissions": [],
     "database_effects": [],
+    "sync_effects": [],
     "normalization_rules": {
       "ignore_paths": [],
       "replace_paths": {}

@@ -1,0 +1,9 @@
+{
+  "ignore_paths": [
+    "response.debug"
+  ],
+  "replace_paths": {
+    "request.headers.authorization": "[REDACTED]",
+    "request.headers.cookie": "[REDACTED]"
+  }
+}
