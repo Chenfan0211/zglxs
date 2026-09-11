@@ -81,6 +81,7 @@ def service(session_factory, client):
         session_factory=session_factory,
         client=client,
         settings=Settings(),
+        enqueuer=lambda event_id, payload: None,
     )
 
 
@@ -123,6 +124,61 @@ async def test_receive_webhook_duplicate_event_is_idempotent(
     assert second.processed_count == 0
     with session_factory() as session:
         assert session.scalars(select(LaikeWebhookEvent)).all().__len__() == 1
+
+
+@pytest.mark.asyncio
+async def test_receive_webhook_without_enqueuer_keeps_event_received_for_retry(
+    session_factory,
+    client,
+):
+    service = LaikeSyncService(
+        session_factory=session_factory,
+        client=client,
+        settings=Settings(),
+    )
+    raw_body = b'{"event_id":"evt-no-queue","order_id":"order-001"}'
+
+    first = await service.receive_webhook(
+        {"X-Event-ID": "evt-no-queue"},
+        raw_body,
+    )
+
+    assert first.success is False
+    assert first.processed_count == 0
+    assert first.failed_count == 1
+    with session_factory() as session:
+        event = session.scalar(
+            select(LaikeWebhookEvent).where(
+                LaikeWebhookEvent.event_id == "evt-no-queue"
+            )
+        )
+        assert event.status == "received"
+        assert event.processed_at is None
+        assert event.claim_token is None
+
+    enqueued: list[tuple[str, dict]] = []
+
+    async def enqueue(event_id, payload):
+        enqueued.append((event_id, payload))
+
+    service.enqueuer = enqueue
+    second = await service.receive_webhook(
+        {"X-Event-ID": "evt-no-queue"},
+        raw_body,
+    )
+
+    assert second.success is True
+    assert second.processed_count == 1
+    assert second.failed_count == 0
+    assert enqueued == [
+        ("evt-no-queue", {"event_id": "evt-no-queue", "order_id": "order-001"})
+    ]
+    with session_factory() as session:
+        assert session.scalar(
+            select(LaikeWebhookEvent.status).where(
+                LaikeWebhookEvent.event_id == "evt-no-queue"
+            )
+        ) == "queued"
 
 
 @pytest.mark.asyncio

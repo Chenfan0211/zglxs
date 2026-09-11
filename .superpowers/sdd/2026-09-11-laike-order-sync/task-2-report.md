@@ -140,6 +140,59 @@ python -m pytest -q
 
 `git diff --check` 通过。
 
+## 最终复审剩余问题修复：无 enqueuer 语义与迁移回滚断言
+
+### TDD RED
+
+新增并修正回归测试：
+
+- `enqueuer=None` 时 webhook 不应被标记为 `queued`；
+- 无实际投递时应返回明确失败结果 `success=False, failed_count=1`；
+- 无 enqueuer 的首次请求释放 claim 后，重复 webhook 仍可重新 claim；随后注入 enqueuer 时应成功投递并进入 `queued`；
+- Alembic `head -> 0002_laike_sync` 只删除 `claim_token` 列并保留四张同步表；
+- Alembic `0002_laike_sync -> 0001_baseline` 后四张同步表都不存在；
+- 将迁移测试名称改为匹配两级回滚行为，并移除恒真断言。
+
+RED 运行：
+
+```text
+python -m pytest tests/test_laike_service.py::test_receive_webhook_without_enqueuer_keeps_event_received_for_retry tests/test_laike_migrations.py::test_laike_migration_downgrades_claim_column_then_sync_tables_on_sqlite -q
+F.                                                                       [100%]
+1 failed, 1 passed in 0.56s
+```
+
+服务测试按预期暴露原实现仍返回成功并计为已处理；迁移测试已验证新的两级回滚断言有效。
+
+### TDD GREEN
+
+- `app/laike/service.py` 在成功 claim 后检测 `enqueuer is None`，使用当前 claim token 释放 `processing` 状态，保留事件为 `received`，并返回 `SyncResult(success=False, failed_count=1)`；带 enqueuer 的投递、异常重试、幂等和 claim fencing 路径保持不变。
+- `tests/test_laike_service.py` 让原有依赖成功排队语义的共享 fixture 显式注入无操作 enqueuer，新增测试显式覆盖无 enqueuer 行为和后续重试。
+- `tests/test_laike_migrations.py` 验证 `head -> 0002` 的列级和表级状态，再验证 `0002 -> 0001` 四张同步表全部删除；测试名称同步更新。
+
+focused GREEN：
+
+```text
+python -m pytest tests/test_laike_service.py -q
+......................                                                   [100%]
+22 passed in 0.61s
+
+python -m pytest tests/test_laike_migrations.py -q
+..                                                                       [100%]
+2 passed in 0.46s
+```
+
+### 最终验证
+
+```text
+python -m pytest -q
+........................................................................ [ 83%]
+..............                                                           [100%]
+86 passed in 1.31s
+
+git diff --check
+通过，无代码空白错误。
+```
+
 ### 审查后自审
 
 - [x] 入队失败不会把 event 永久视为已处理。

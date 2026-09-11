@@ -33,7 +33,7 @@ def test_laike_migration_declares_all_sync_tables_and_reversible_operations():
     assert "op.drop_column" in claim_revision
 
 
-def test_laike_migration_runs_on_sqlite_and_drops_sync_tables(tmp_path):
+def test_laike_migration_downgrades_claim_column_then_sync_tables_on_sqlite(tmp_path):
     database_url = f"sqlite+pysqlite:///{tmp_path / 'migration.db'}"
     config = Config(str(Path(__file__).parents[1] / "alembic.ini"))
     config.set_main_option("sqlalchemy.url", database_url)
@@ -63,7 +63,22 @@ def test_laike_migration_runs_on_sqlite_and_drops_sync_tables(tmp_path):
         column["name"]
         for column in inspect(engine).get_columns("laike_webhook_event")
     }
+    assert tables_after_downgrade >= {
+        "alembic_version",
+        "laike_webhook_event",
+        "laike_order",
+        "laike_sync_cursor",
+        "laike_sync_run",
+    }
+
+    command.downgrade(config, "0001_baseline")
+    tables_after_full_downgrade = set(inspect(engine).get_table_names())
     assert not (
-        tables_after_downgrade
-        & set()
+        tables_after_full_downgrade
+        & {
+            "laike_webhook_event",
+            "laike_order",
+            "laike_sync_cursor",
+            "laike_sync_run",
+        }
     )

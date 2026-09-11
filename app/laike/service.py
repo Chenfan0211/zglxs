@@ -70,9 +70,16 @@ class LaikeSyncService:
         if not claimed:
             return SyncResult(success=True)
 
+        if self.enqueuer is None:
+            with UnitOfWork(self.session_factory) as unit:
+                LaikeRepository(unit.session).release_webhook_claim(
+                    event_id,
+                    claim_token=claimed,
+                )
+            return SyncResult(success=False, failed_count=1)
+
         try:
-            if self.enqueuer is not None:
-                await _maybe_await(self.enqueuer(enqueue_event_id, enqueue_payload))
+            await _maybe_await(self.enqueuer(enqueue_event_id, enqueue_payload))
         except asyncio.CancelledError:
             with UnitOfWork(self.session_factory) as unit:
                 LaikeRepository(unit.session).release_webhook_claim(
