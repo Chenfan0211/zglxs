@@ -48,8 +48,12 @@ def compare_recordings(
 
     expected_body = normalize_value(php_recording.get("body"), normalization_rules)
     actual_body = normalize_value(python_recording.get("body"), normalization_rules)
-    expected_db = normalize_value(php_recording.get("database", {}), normalization_rules)
-    actual_db = normalize_value(python_recording.get("database", {}), normalization_rules)
+    expected_headers = _normalize_headers(php_recording.get("headers"), normalization_rules)
+    actual_headers = _normalize_headers(
+        python_recording.get("headers"), normalization_rules
+    )
+    expected_db = normalize_value(_database_effects(php_recording), normalization_rules)
+    actual_db = normalize_value(_database_effects(python_recording), normalization_rules)
 
     mismatches: list[ContractMismatch] = []
     if php_recording["status_code"] != python_recording["status_code"]:
@@ -68,6 +72,14 @@ def compare_recordings(
                 actual=actual_body,
             )
         )
+    if expected_headers != actual_headers:
+        mismatches.append(
+            ContractMismatch(
+                kind="response.headers",
+                expected=expected_headers,
+                actual=actual_headers,
+            )
+        )
     if expected_db != actual_db:
         mismatches.append(
             ContractMismatch(
@@ -77,6 +89,23 @@ def compare_recordings(
             )
         )
     return mismatches
+
+
+def _normalize_headers(
+    headers: Any, normalization_rules: Mapping[str, Any]
+) -> dict[str, Any]:
+    if headers is None:
+        headers = {}
+    normalized_headers = {
+        str(key).lower(): value for key, value in headers.items()
+    }
+    return normalize_value(normalized_headers, normalization_rules)
+
+
+def _database_effects(recording: Mapping[str, Any]) -> Any:
+    if "database" in recording:
+        return recording["database"]
+    return recording.get("database_effects", {})
 
 
 def _require_keys(recording: Mapping[str, Any], label: str) -> None:

@@ -8,7 +8,9 @@ from tools.contract_tools import compare_recordings, load_recordings
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Compare PHP/Python JSONL recordings")
+    parser = argparse.ArgumentParser(
+        description="Compare PHP/Python JSONL recordings, response headers, and database effects"
+    )
     parser.add_argument("--php", required=True, type=Path)
     parser.add_argument("--python", dest="python_path", required=True, type=Path)
     parser.add_argument("--rules", type=Path)

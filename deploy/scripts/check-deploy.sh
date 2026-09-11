@@ -19,6 +19,18 @@ curl --fail --silent --show-error --max-time 5 \
 curl --fail --silent --show-error --max-time 5 \
   "$api_url/internal/migration/status"
 
+if [[ "${LAIKE_WEBHOOK_ENABLED:-false}" == "false" ]]; then
+  webhook_status="$(
+    curl --silent --show-error --max-time 5 \
+      --output /dev/null --write-out '%{http_code}' \
+      -X POST -H 'content-type: application/json' --data '{}' \
+      "$api_url/internal/laike/webhook"
+  )"
+  test "$webhook_status" = "503"
+else
+  printf 'laike webhook safety probe skipped: LAIKE_WEBHOOK_ENABLED=true\n'
+fi
+
 for service in \
   douyin-order-api.service \
   douyin-order-worker.service \

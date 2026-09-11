@@ -33,3 +33,14 @@ Systemd 验收。该脚本默认检查 `18084` 公网入口和 `18083` 本机 AP
 ## 配置安全
 
 复制 `.env.example` 后再按本地环境填写配置。真实 `.env`、生产数据库凭据、Token、证书、日志和上传文件禁止提交到 Git。PHP 基线回退只有在显式配置 `PHP_BASELINE_URL` 后才会启用。
+
+## 来客同步前置条件与安全模式
+
+来客契约回放仍依赖外部提供的真实 PHP 基线、脱敏业务数据库快照、真实 HAR、
+真实 Webhook 路径、真实签名、真实事件 ID、真实订单 ID 和测试凭据；仓库不猜测
+这些协议细节，也不保存真实凭据、Token、手机号或地址。
+
+安全模式默认值必须保持为：`LAIKE_SYNC_MODE=observe`、
+`LAIKE_WEBHOOK_ENABLED=false`、`LAIKE_RECONCILE_ENABLED=false`、
+`LAIKE_WRITE_ENABLED=false`。在 PHP/Python 回放和数据库副作用比较全部通过前，
+`contracts/api-manifest.json` 的 migrated_routes 保持为空。

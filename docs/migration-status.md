@@ -13,6 +13,11 @@
 - 不能从压缩包直接启动隔离 PHP 基线；业务 PHP 控制器/模型是加密二进制。
 - 压缩包没有业务数据库快照或业务结构 SQL，只有 FastAdmin 安装 SQL。
 - 当前没有可用于行为对比的脱敏种子数据、PHP 服务地址或测试数据库凭据。
+- 仍需外部提供真实 PHP 基线、脱敏业务数据库快照、真实 HAR、真实 Webhook 路径、
+  真实签名、真实事件 ID、真实订单 ID 和测试凭据；这些信息不写入仓库。
+- 安全模式默认值为 `LAIKE_SYNC_MODE=observe`、`LAIKE_WEBHOOK_ENABLED=false`、
+  `LAIKE_RECONCILE_ENABLED=false`、`LAIKE_WRITE_ENABLED=false`。
+- 在 PHP/Python 回放和数据库副作用比较全部通过前，migrated_routes 保持为空。
 
 ## 下一步
 

@@ -16,3 +16,14 @@
 - 写操作影响的数据库表、事务边界和幂等行为。
 
 第一阶段不登记任何真实业务接口。
+
+## 来客契约回放门槛
+
+回放前仍需从外部取得真实 PHP 基线、脱敏业务数据库快照、真实 HAR、真实 Webhook
+路径、真实签名、真实事件 ID、真实订单 ID 和测试凭据。仓库只保留脱敏占位数据，
+不包含真实凭据、Token、手机号或地址。
+
+安全模式默认值必须是 `LAIKE_SYNC_MODE=observe`、`LAIKE_WEBHOOK_ENABLED=false`、
+`LAIKE_RECONCILE_ENABLED=false`、`LAIKE_WRITE_ENABLED=false`。在 PHP/Python 回放和
+数据库副作用比较全部通过前，`contracts/api-manifest.json` 的 migrated_routes
+保持为空。
