@@ -53,24 +53,36 @@ def add_event(
     *,
     processed_at: datetime | None = None,
     claim_token: str | None = None,
+    retry_count: int | None = None,
+    next_retry_at: datetime | None = None,
+    retry_scheduled_at: datetime | None = None,
 ) -> None:
+    event_kwargs = {
+        "event_id": event_id,
+        "payload_json": {
+            "event_id": event_id,
+            "order_id": "order-001",
+            "status": "paid",
+        },
+        "headers_json": {},
+        "verified": True,
+        "status": status,
+        "processed_at": processed_at,
+        "claim_token": claim_token,
+    }
+    if retry_count is not None:
+        event_kwargs["retry_count"] = retry_count
+    if next_retry_at is not None:
+        event_kwargs["next_retry_at"] = next_retry_at
+    if retry_scheduled_at is not None:
+        event_kwargs["retry_scheduled_at"] = retry_scheduled_at
     with session_factory() as session:
-        session.add(
-            LaikeWebhookEvent(
-                event_id=event_id,
-                payload_json={
-                    "event_id": event_id,
-                    "order_id": "order-001",
-                    "status": "paid",
-                },
-                headers_json={},
-                verified=True,
-                status=status,
-                processed_at=processed_at,
-                claim_token=claim_token,
-            )
-        )
+        session.add(LaikeWebhookEvent(**event_kwargs))
         session.commit()
+
+
+def utc_datetime(value: datetime) -> datetime:
+    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
 
 
 def test_worker_tasks_are_registered_on_the_shared_celery_app():
@@ -358,12 +370,133 @@ def test_process_webhook_retries_with_exponential_backoff_on_failure(
         ) == "failed"
 
 
+def test_failure_persists_retry_schedule_and_scanner_waits_for_countdown(
+    session_factory,
+    enabled_service,
+    monkeypatch,
+):
+    add_event(session_factory, "evt-persisted-retry", retry_count=0)
+    monkeypatch.setattr(laike_tasks, "_service_factory", lambda: enabled_service)
+    monkeypatch.setattr(
+        enabled_service,
+        "_process_page",
+        lambda page: _failed_page(),
+    )
+
+    def fake_retry(**kwargs):
+        raise RuntimeError("retry requested")
+
+    monkeypatch.setattr(laike_tasks.process_laike_webhook, "retry", fake_retry)
+
+    with pytest.raises(RuntimeError, match="retry requested"):
+        laike_tasks.process_laike_webhook.run("evt-persisted-retry")
+
+    with session_factory() as session:
+        event = session.scalar(
+            select(LaikeWebhookEvent).where(
+                LaikeWebhookEvent.event_id == "evt-persisted-retry"
+            )
+        )
+        assert event is not None
+        assert event.status == "failed"
+        assert event.retry_count == 1
+        assert event.next_retry_at is not None
+        assert utc_datetime(event.next_retry_at) > datetime.now(timezone.utc)
+
+    enqueued: list[str] = []
+    monkeypatch.setattr(
+        laike_tasks.process_laike_webhook,
+        "delay",
+        lambda event_id: enqueued.append(event_id),
+    )
+    result = laike_tasks.retry_failed_laike_events.run()
+
+    assert result == {"status": "queued", "count": 0}
+    assert enqueued == []
+
+
+def test_second_retry_uses_persisted_count_even_when_celery_request_restarts(
+    session_factory,
+    enabled_service,
+    monkeypatch,
+):
+    add_event(
+        session_factory,
+        "evt-persisted-second-retry",
+        retry_count=1,
+        next_retry_at=datetime.now(timezone.utc) - timedelta(seconds=1),
+    )
+    monkeypatch.setattr(laike_tasks, "_service_factory", lambda: enabled_service)
+    monkeypatch.setattr(
+        enabled_service,
+        "_process_page",
+        lambda page: _failed_page(),
+    )
+    retry_calls: list[dict] = []
+
+    def fake_retry(**kwargs):
+        retry_calls.append(kwargs)
+        raise RuntimeError("retry requested")
+
+    monkeypatch.setattr(laike_tasks.process_laike_webhook, "retry", fake_retry)
+
+    with pytest.raises(RuntimeError, match="retry requested"):
+        laike_tasks.process_laike_webhook.run("evt-persisted-second-retry")
+
+    assert retry_calls[0]["countdown"] == 2
+    with session_factory() as session:
+        event = session.scalar(
+            select(LaikeWebhookEvent).where(
+                LaikeWebhookEvent.event_id == "evt-persisted-second-retry"
+            )
+        )
+        assert event is not None
+        assert event.retry_count == 2
+
+
+def test_persisted_retry_count_dead_letters_without_celery_request_retries(
+    session_factory,
+    enabled_service,
+    monkeypatch,
+):
+    add_event(
+        session_factory,
+        "evt-persisted-max-retries",
+        retry_count=2,
+        next_retry_at=datetime.now(timezone.utc) - timedelta(seconds=1),
+    )
+    monkeypatch.setattr(laike_tasks, "_service_factory", lambda: enabled_service)
+    monkeypatch.setattr(
+        enabled_service,
+        "_process_page",
+        lambda page: _failed_page(),
+    )
+    monkeypatch.setattr(
+        laike_tasks.process_laike_webhook,
+        "retry",
+        lambda **kwargs: pytest.fail("max retries must not call Celery retry"),
+    )
+
+    result = laike_tasks.process_laike_webhook.run("evt-persisted-max-retries")
+
+    assert result == {
+        "status": "dead_letter",
+        "event_id": "evt-persisted-max-retries",
+    }
+    with session_factory() as session:
+        assert session.scalar(
+            select(LaikeWebhookEvent.status).where(
+                LaikeWebhookEvent.event_id == "evt-persisted-max-retries"
+            )
+        ) == "dead_letter"
+
+
 def test_process_webhook_uses_second_exponential_backoff(
     session_factory,
     enabled_service,
     monkeypatch,
 ):
-    add_event(session_factory, "evt-second-retry")
+    add_event(session_factory, "evt-second-retry", retry_count=1)
     monkeypatch.setattr(
         laike_tasks,
         "_service_factory",
@@ -398,7 +531,7 @@ def test_process_webhook_dead_letters_after_max_retries(
     enabled_service,
     monkeypatch,
 ):
-    add_event(session_factory, "evt-dead-letter")
+    add_event(session_factory, "evt-dead-letter", retry_count=2)
     monkeypatch.setattr(
         laike_tasks,
         "_service_factory",
@@ -577,6 +710,81 @@ def test_retry_scanner_restores_failed_when_delay_raises(
                 LaikeWebhookEvent.event_id == "evt-delay-error"
             )
         ) == "failed"
+
+
+def test_retry_scanner_reclaims_expired_retry_scheduled_event(
+    session_factory,
+    enabled_service,
+    monkeypatch,
+):
+    old_schedule = datetime.now(timezone.utc) - timedelta(minutes=10)
+    add_event(
+        session_factory,
+        "evt-expired-schedule",
+        status="retry_scheduled",
+        retry_count=1,
+        next_retry_at=datetime.now(timezone.utc) - timedelta(seconds=1),
+        retry_scheduled_at=old_schedule,
+    )
+    monkeypatch.setattr(laike_tasks, "_service_factory", lambda: enabled_service)
+    enqueued: list[str] = []
+    monkeypatch.setattr(
+        laike_tasks.process_laike_webhook,
+        "delay",
+        lambda event_id: enqueued.append(event_id),
+    )
+
+    result = laike_tasks.retry_failed_laike_events.run()
+
+    assert result == {"status": "queued", "count": 1}
+    assert enqueued == ["evt-expired-schedule"]
+    with session_factory() as session:
+        event = session.scalar(
+            select(LaikeWebhookEvent).where(
+                LaikeWebhookEvent.event_id == "evt-expired-schedule"
+            )
+        )
+        assert event is not None
+        assert event.status == "retry_scheduled"
+        assert event.retry_count == 1
+        assert event.retry_scheduled_at is not None
+        assert utc_datetime(event.retry_scheduled_at) > old_schedule
+
+
+def test_retry_scanner_delay_error_restores_failed_without_losing_retry_schedule(
+    session_factory,
+    enabled_service,
+    monkeypatch,
+):
+    next_retry_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+    add_event(
+        session_factory,
+        "evt-delay-error-preserves-count",
+        status="failed",
+        retry_count=1,
+        next_retry_at=next_retry_at,
+    )
+    monkeypatch.setattr(laike_tasks, "_service_factory", lambda: enabled_service)
+    monkeypatch.setattr(
+        laike_tasks.process_laike_webhook,
+        "delay",
+        lambda event_id: (_ for _ in ()).throw(RuntimeError("broker unavailable")),
+    )
+
+    result = laike_tasks.retry_failed_laike_events.run()
+
+    assert result == {"status": "queued", "count": 0}
+    with session_factory() as session:
+        event = session.scalar(
+            select(LaikeWebhookEvent).where(
+                LaikeWebhookEvent.event_id == "evt-delay-error-preserves-count"
+            )
+        )
+        assert event is not None
+        assert event.status == "failed"
+        assert event.retry_count == 1
+        assert utc_datetime(event.next_retry_at) == next_retry_at
+        assert event.retry_scheduled_at is None
 
 
 def test_process_webhook_consumes_retry_scheduled_event(

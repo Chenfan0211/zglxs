@@ -2,6 +2,7 @@ import inspect
 from collections.abc import Callable
 from typing import Any
 
+from celery import Celery
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
@@ -13,6 +14,7 @@ from app.integrations.php_baseline import PhpBaselineProxy
 from app.laike.client import HmacLaikeClient, LaikeClient
 from app.laike.service import LaikeSyncService
 from app.laike.webhook import create_laike_webhook_router
+from app.worker.celery_app import create_celery_app
 
 
 def create_app(
@@ -22,6 +24,8 @@ def create_app(
     laike_client: LaikeClient | None = None,
     laike_session_factory: Callable[[], Any] | None = None,
     laike_enqueuer: Callable[..., Any] | None = None,
+    laike_task_app: Celery | None = None,
+    laike_enqueuer_factory: Callable[[Celery], Callable[..., Any]] | None = None,
     laike_service_factory: Callable[[], LaikeSyncService] | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings.from_env()
@@ -39,13 +43,24 @@ def create_app(
         resolved_settings.laike_webhook_secret
     )
     resolved_session_factory = laike_session_factory or database.session
+    resolved_laike_task_app = laike_task_app or create_celery_app(
+        settings=resolved_settings
+    )
 
     def enqueue_laike_webhook(event_id: str, payload: dict[str, Any]) -> Any:
-        from app.worker.laike_tasks import process_laike_webhook
+        return resolved_laike_task_app.send_task(
+            "process_laike_webhook",
+            args=(event_id,),
+        )
 
-        return process_laike_webhook.delay(event_id)
-
-    resolved_laike_enqueuer = laike_enqueuer or enqueue_laike_webhook
+    resolved_laike_enqueuer = (
+        laike_enqueuer
+        or (
+            laike_enqueuer_factory(resolved_laike_task_app)
+            if laike_enqueuer_factory is not None
+            else enqueue_laike_webhook
+        )
+    )
     resolved_laike_service_factory = laike_service_factory or (
         lambda: LaikeSyncService(
             session_factory=resolved_session_factory,
@@ -62,6 +77,7 @@ def create_app(
     app.state.php_baseline_proxy = resolved_php_proxy
     app.state.laike_client = resolved_laike_client
     app.state.laike_session_factory = resolved_session_factory
+    app.state.laike_task_app = resolved_laike_task_app
     app.state.laike_enqueuer = resolved_laike_enqueuer
     app.state.laike_service_factory = resolved_laike_service_factory
     app.include_router(create_health_router(database))

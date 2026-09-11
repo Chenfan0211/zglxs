@@ -59,7 +59,14 @@ def _claim_event_for_processing(
                 LaikeWebhookEvent.event_id == event_id,
                 or_(
                     LaikeWebhookEvent.status.in_(
-                        ("queued", "failed", "retry_scheduled")
+                        ("queued", "retry_scheduled")
+                    ),
+                    and_(
+                        LaikeWebhookEvent.status == "failed",
+                        or_(
+                            LaikeWebhookEvent.next_retry_at.is_(None),
+                            LaikeWebhookEvent.next_retry_at <= now,
+                        ),
                     ),
                     and_(
                         LaikeWebhookEvent.status == "consuming",
@@ -74,6 +81,7 @@ def _claim_event_for_processing(
                 status="consuming",
                 processed_at=now,
                 claim_token=claim_token,
+                retry_scheduled_at=None,
             )
             .execution_options(synchronize_session=False)
         )
@@ -103,6 +111,12 @@ def _set_event_status(
     from_status: str = "consuming",
 ) -> bool:
     with service.session_factory() as session:
+        values = {
+            "status": status,
+            "processed_at": datetime.now(timezone.utc),
+        }
+        if status in {"processed", "dead_letter"}:
+            values.update(next_retry_at=None, retry_scheduled_at=None)
         result = session.execute(
             update(LaikeWebhookEvent)
             .where(
@@ -110,14 +124,81 @@ def _set_event_status(
                 LaikeWebhookEvent.status == from_status,
                 LaikeWebhookEvent.claim_token == claim_token,
             )
-            .values(
-                status=status,
-                processed_at=datetime.now(timezone.utc),
-            )
+            .values(**values)
             .execution_options(synchronize_session=False)
         )
         session.commit()
         return result.rowcount == 1
+
+
+def _record_event_failure(
+    service: Any,
+    event_id: str,
+    claim_token: str,
+) -> dict[str, Any]:
+    now = datetime.now(timezone.utc)
+    max_retries = int(service.settings.laike_max_retries)
+    with service.session_factory() as session:
+        event = session.scalar(
+            select(LaikeWebhookEvent).where(
+                LaikeWebhookEvent.event_id == event_id,
+                LaikeWebhookEvent.status == "consuming",
+                LaikeWebhookEvent.claim_token == claim_token,
+            )
+        )
+        if event is None:
+            return {"status": "fenced", "event_id": event_id}
+
+        retry_count = int(event.retry_count or 0)
+        if retry_count >= max_retries:
+            result = session.execute(
+                update(LaikeWebhookEvent)
+                .where(
+                    LaikeWebhookEvent.event_id == event_id,
+                    LaikeWebhookEvent.status == "consuming",
+                    LaikeWebhookEvent.claim_token == claim_token,
+                )
+                .values(
+                    status="dead_letter",
+                    processed_at=now,
+                    next_retry_at=None,
+                    retry_scheduled_at=None,
+                    claim_token=None,
+                )
+                .execution_options(synchronize_session=False)
+            )
+            session.commit()
+            if result.rowcount != 1:
+                return {"status": "fenced", "event_id": event_id}
+            return {"status": "dead_letter", "event_id": event_id}
+
+        countdown = 2**retry_count
+        result = session.execute(
+            update(LaikeWebhookEvent)
+            .where(
+                LaikeWebhookEvent.event_id == event_id,
+                LaikeWebhookEvent.status == "consuming",
+                LaikeWebhookEvent.claim_token == claim_token,
+            )
+            .values(
+                status="failed",
+                processed_at=now,
+                retry_count=retry_count + 1,
+                next_retry_at=now + timedelta(seconds=countdown),
+                retry_scheduled_at=None,
+                claim_token=None,
+            )
+            .execution_options(synchronize_session=False)
+        )
+        session.commit()
+        if result.rowcount != 1:
+            return {"status": "fenced", "event_id": event_id}
+        return {
+            "status": "failed",
+            "event_id": event_id,
+            "retry_count": retry_count + 1,
+            "countdown": countdown,
+        }
 
 
 def _retry_task(
@@ -129,49 +210,30 @@ def _retry_task(
     exc: Exception,
 ) -> dict[str, Any]:
     max_retries = int(service.settings.laike_max_retries)
-    retries = int(getattr(task.request, "retries", 0))
-    if retries >= max_retries:
-        if event_id is not None and claim_token is not None:
-            if not _set_event_status(
-                service,
-                event_id,
-                "dead_letter",
-                claim_token=claim_token,
-            ):
-                return {"status": "fenced", "event_id": event_id}
-        return {
-            "status": "dead_letter",
-            **({"event_id": event_id} if event_id is not None else {}),
-        }
-    if event_id is not None and claim_token is not None:
-        if not _set_event_status(
-            service,
-            event_id,
-            "failed",
-            claim_token=claim_token,
-        ):
+    if event_id is not None:
+        if claim_token is None:
             return {"status": "fenced", "event_id": event_id}
+        event_failure = _record_event_failure(service, event_id, claim_token)
+        if event_failure["status"] != "failed":
+            return event_failure
+        countdown = int(event_failure["countdown"])
+        request_retries = int(getattr(task.request, "retries", 0))
+        celery_max_retries = max(max_retries, request_retries + 1)
+    else:
+        request_retries = int(getattr(task.request, "retries", 0))
+        if request_retries >= max_retries:
+            return {"status": "dead_letter"}
+        countdown = 2**request_retries
+        celery_max_retries = max_retries
     try:
         raise task.retry(
             exc=exc,
-            countdown=2**retries,
-            max_retries=max_retries,
+            countdown=countdown,
+            max_retries=celery_max_retries,
         )
     except MaxRetriesExceededError:
-        if (
-            event_id is not None
-            and claim_token is not None
-            and not _set_event_status(
-                service,
-                event_id,
-                "dead_letter",
-                claim_token=claim_token,
-                from_status="failed",
-            )
-        ):
-            return {"status": "fenced", "event_id": event_id}
         return {
-            "status": "dead_letter",
+            "status": "failed" if event_id is not None else "dead_letter",
             **({"event_id": event_id} if event_id is not None else {}),
         }
 
@@ -278,7 +340,20 @@ def retry_failed_laike_events() -> dict[str, Any]:
             session.scalars(
                 select(LaikeWebhookEvent.event_id).where(
                     or_(
-                        LaikeWebhookEvent.status == "failed",
+                        and_(
+                            LaikeWebhookEvent.status == "failed",
+                            or_(
+                                LaikeWebhookEvent.next_retry_at.is_(None),
+                                LaikeWebhookEvent.next_retry_at <= now,
+                            ),
+                        ),
+                        and_(
+                            LaikeWebhookEvent.status == "retry_scheduled",
+                            or_(
+                                LaikeWebhookEvent.retry_scheduled_at.is_(None),
+                                LaikeWebhookEvent.retry_scheduled_at < stale_before,
+                            ),
+                        ),
                         and_(
                             LaikeWebhookEvent.status == "consuming",
                             or_(
@@ -290,14 +365,27 @@ def retry_failed_laike_events() -> dict[str, Any]:
                 )
             )
         )
-        event_ids: list[str] = []
+        scheduled_events: list[tuple[str, datetime]] = []
         for event_id in candidates:
             result = session.execute(
                 update(LaikeWebhookEvent)
                 .where(
                     LaikeWebhookEvent.event_id == event_id,
                     or_(
-                        LaikeWebhookEvent.status == "failed",
+                        and_(
+                            LaikeWebhookEvent.status == "failed",
+                            or_(
+                                LaikeWebhookEvent.next_retry_at.is_(None),
+                                LaikeWebhookEvent.next_retry_at <= now,
+                            ),
+                        ),
+                        and_(
+                            LaikeWebhookEvent.status == "retry_scheduled",
+                            or_(
+                                LaikeWebhookEvent.retry_scheduled_at.is_(None),
+                                LaikeWebhookEvent.retry_scheduled_at < stale_before,
+                            ),
+                        ),
                         and_(
                             LaikeWebhookEvent.status == "consuming",
                             or_(
@@ -311,15 +399,16 @@ def retry_failed_laike_events() -> dict[str, Any]:
                     status="retry_scheduled",
                     processed_at=None,
                     claim_token=None,
+                    retry_scheduled_at=now,
                 )
                 .execution_options(synchronize_session=False)
             )
             if result.rowcount == 1:
-                event_ids.append(event_id)
+                scheduled_events.append((event_id, now))
         session.commit()
 
     queued_count = 0
-    for event_id in event_ids:
+    for event_id, scheduled_at in scheduled_events:
         try:
             process_laike_webhook.delay(event_id)
         except Exception:
@@ -329,8 +418,14 @@ def retry_failed_laike_events() -> dict[str, Any]:
                     .where(
                         LaikeWebhookEvent.event_id == event_id,
                         LaikeWebhookEvent.status == "retry_scheduled",
+                        LaikeWebhookEvent.retry_scheduled_at == scheduled_at,
                     )
-                    .values(status="failed", processed_at=None, claim_token=None)
+                    .values(
+                        status="failed",
+                        processed_at=None,
+                        claim_token=None,
+                        retry_scheduled_at=None,
+                    )
                     .execution_options(synchronize_session=False)
                 )
                 session.commit()

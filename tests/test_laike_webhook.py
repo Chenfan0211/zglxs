@@ -6,6 +6,7 @@ import json
 
 import httpx
 import pytest
+from celery import Celery
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
@@ -117,6 +118,57 @@ def make_app(
         laike_client=client or FakeLaikeClient(),
         laike_service_factory=lambda: resolved_service,
     )
+
+
+def test_create_app_uses_settings_broker_for_default_laike_enqueuer():
+    settings = Settings(
+        app_env="test",
+        database_url=None,
+        php_baseline_url=None,
+        redis_url="redis://settings-host:6379/7",
+        laike_webhook_enabled=False,
+    )
+
+    app = create_app(settings)
+
+    assert app.state.laike_task_app.conf.broker_url == "redis://settings-host:6379/7"
+    calls: list[tuple[str, tuple[str, ...]]] = []
+    app.state.laike_task_app.send_task = (
+        lambda name, args=(): calls.append((name, tuple(args)))
+    )
+
+    app.state.laike_enqueuer("evt-settings-broker", {"ignored": True})
+
+    assert calls == [("process_laike_webhook", ("evt-settings-broker",))]
+
+
+def test_create_app_uses_injected_task_app_for_default_laike_enqueuer():
+    task_app = Celery(
+        "injected-laike",
+        broker="redis://injected-host:6379/8",
+        backend="redis://injected-host:6379/8",
+        set_as_current=False,
+    )
+    app = create_app(
+        Settings(
+            app_env="test",
+            database_url=None,
+            php_baseline_url=None,
+            redis_url="redis://settings-host:6379/7",
+            laike_webhook_enabled=False,
+        ),
+        laike_task_app=task_app,
+    )
+    calls: list[tuple[str, tuple[str, ...]]] = []
+    task_app.send_task = (
+        lambda name, args=(): calls.append((name, tuple(args)))
+    )
+
+    app.state.laike_enqueuer("evt-injected-broker", {"ignored": True})
+
+    assert app.state.laike_task_app is task_app
+    assert app.state.laike_task_app.conf.broker_url == "redis://injected-host:6379/8"
+    assert calls == [("process_laike_webhook", ("evt-injected-broker",))]
 
 
 @pytest.mark.asyncio

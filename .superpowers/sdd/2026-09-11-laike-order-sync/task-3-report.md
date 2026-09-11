@@ -181,3 +181,78 @@ git diff --check
 ```
 
 通过；仅有 Windows 工作区的 LF/CRLF 转换提示，无 whitespace 错误。
+
+## 复审剩余问题修复（2026-09-12）
+
+### 修复内容
+
+- `LaikeWebhookEvent` 新增持久化 `retry_count`、`next_retry_at` 和 `retry_scheduled_at`，并新增 `0004_laike_retry_state` migration。
+- 消费失败在当前 claim token 下原子写入下一次重试次数和到期时间；scanner 只投递到期的 `failed`，不会在 Celery countdown 期间重复派发。
+- process task 以数据库中的 `retry_count` 为业务重试权威，第二次退避仍为 `2` 秒，达到 `max_retries` 时进入 `dead_letter`；Celery `request.retries` 不再决定事件是否 dead-letter。
+- scanner 原子建立 `retry_scheduled_at` 投递租约；投递前崩溃后，后续 scanner 可回收过期租约。`delay` 异常只在同一租约仍有效时恢复 `failed`，保留原有计数和到期时间。
+- 保留过期 `consuming` claim 的恢复和 claim token fencing；旧 token 不能覆盖新 worker 的状态。
+- `create_app(settings=...)` 默认创建并保存与 resolved settings 相同 broker 的 Celery app；支持注入 `laike_task_app` 或 `laike_enqueuer_factory`，默认 enqueuer 使用该 app 的 `send_task`，app factory 不连接 Redis。
+
+### TDD RED
+
+先追加持久化重试、scanner 租约、迁移和 Celery app 绑定测试，再运行 focused：
+
+```text
+python -m pytest tests/test_laike_tasks.py tests/test_laike_webhook.py tests/test_laike_migrations.py -q
+```
+
+结果：
+
+```text
+9 failed, 31 passed
+```
+
+失败原因分别是事件模型缺少 retry 字段、迁移 `0004` 不存在，以及 `create_app` 尚未暴露/绑定 `laike_task_app`；没有提前修改生产实现。
+
+### TDD GREEN
+
+实现后运行同一 focused：
+
+```text
+python -m pytest tests/test_laike_tasks.py tests/test_laike_webhook.py tests/test_laike_migrations.py -q
+```
+
+结果：
+
+```text
+40 passed in 1.66s
+```
+
+覆盖失败 countdown 期间不重复派发、持久化第二次退避和最大次数、过期 `retry_scheduled` 回收、投递异常恢复、并发 scanner、旧 token fencing、disabled 无副作用，以及 settings/custom task app 的 broker 一致性。
+
+### 最终验证
+
+完整测试：
+
+```text
+python -m pytest -q
+```
+
+结果：
+
+```text
+125 passed in 2.01s
+```
+
+编译检查：
+
+```text
+python -m compileall -q app alembic tools
+```
+
+通过，无输出。
+
+差异格式检查：
+
+```text
+git diff --check
+```
+
+通过；仅有 Windows 工作区的 LF/CRLF 转换提示，无 whitespace 错误。
+
+HMAC signature header 和 event ID 候选仍仅作为兼容占位，报告不将其表述为真实来客协议；未解密 PHP，未写入凭据或 HAR，未登记新的 `migrated_routes`。

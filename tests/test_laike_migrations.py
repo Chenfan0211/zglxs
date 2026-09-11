@@ -32,6 +32,17 @@ def test_laike_migration_declares_all_sync_tables_and_reversible_operations():
     assert "op.add_column" in claim_revision
     assert "op.drop_column" in claim_revision
 
+    retry_revision = (
+        Path(__file__).parents[1] / "alembic/versions/0004_laike_retry_state.py"
+    )
+    assert retry_revision.exists()
+    retry_text = retry_revision.read_text(encoding="utf-8")
+    assert 'revision = "0004_laike_retry_state"' in retry_text
+    assert 'down_revision = "0003_laike_claim_token"' in retry_text
+    assert 'sa.Column("retry_count"' in retry_text
+    assert 'sa.Column("next_retry_at"' in retry_text
+    assert 'sa.Column("retry_scheduled_at"' in retry_text
+
 
 def test_laike_migration_downgrades_claim_column_then_sync_tables_on_sqlite(tmp_path):
     database_url = f"sqlite+pysqlite:///{tmp_path / 'migration.db'}"
@@ -56,6 +67,10 @@ def test_laike_migration_downgrades_claim_column_then_sync_tables_on_sqlite(tmp_
         column["name"]
         for column in inspect(engine).get_columns("laike_webhook_event")
     }
+    assert {
+        column["name"]
+        for column in inspect(engine).get_columns("laike_webhook_event")
+    } >= {"retry_count", "next_retry_at", "retry_scheduled_at"}
 
     command.downgrade(config, "0002_laike_sync")
     tables_after_downgrade = set(inspect(engine).get_table_names())
