@@ -35,7 +35,7 @@ class LaikeSyncService:
         self.settings = settings
         self.enqueuer = enqueuer
         self.webhook_claim_timeout_seconds = float(
-            getattr(settings, "laike_webhook_claim_timeout_seconds", 300)
+            settings.laike_webhook_claim_timeout_seconds
         )
 
     async def receive_webhook(
@@ -75,11 +75,17 @@ class LaikeSyncService:
                 await _maybe_await(self.enqueuer(enqueue_event_id, enqueue_payload))
         except asyncio.CancelledError:
             with UnitOfWork(self.session_factory) as unit:
-                LaikeRepository(unit.session).release_webhook_claim(event_id)
+                LaikeRepository(unit.session).release_webhook_claim(
+                    event_id,
+                    claim_token=claimed,
+                )
             raise
         except Exception:
             with UnitOfWork(self.session_factory) as unit:
-                LaikeRepository(unit.session).release_webhook_claim(event_id)
+                LaikeRepository(unit.session).release_webhook_claim(
+                    event_id,
+                    claim_token=claimed,
+                )
             return SyncResult(success=False, failed_count=1)
 
         with UnitOfWork(self.session_factory) as unit:
@@ -87,6 +93,7 @@ class LaikeSyncService:
             repository.mark_webhook_queued(
                 event_id,
                 datetime.now(timezone.utc),
+                claim_token=claimed,
             )
         return SyncResult(success=True, processed_count=1)
 

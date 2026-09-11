@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from typing import Any
+from uuid import uuid4
 
 from sqlalchemy import and_, or_, select, update
 from sqlalchemy.exc import IntegrityError
@@ -71,7 +72,8 @@ class LaikeRepository:
         *,
         claimed_at: datetime,
         stale_before: datetime,
-    ) -> bool:
+    ) -> str | None:
+        claim_token = str(uuid4())
         result = self.session.execute(
             update(LaikeWebhookEvent)
             .where(
@@ -87,19 +89,24 @@ class LaikeRepository:
                     ),
                 ),
             )
-            .values(status="processing", processed_at=claimed_at)
+            .values(
+                status="processing",
+                processed_at=claimed_at,
+                claim_token=claim_token,
+            )
             .execution_options(synchronize_session=False)
         )
-        return result.rowcount == 1
+        return claim_token if result.rowcount == 1 else None
 
-    def release_webhook_claim(self, event_id: str) -> bool:
+    def release_webhook_claim(self, event_id: str, *, claim_token: str) -> bool:
         result = self.session.execute(
             update(LaikeWebhookEvent)
             .where(
                 LaikeWebhookEvent.event_id == event_id,
                 LaikeWebhookEvent.status == "processing",
+                LaikeWebhookEvent.claim_token == claim_token,
             )
-            .values(status="received", processed_at=None)
+            .values(status="received", processed_at=None, claim_token=None)
             .execution_options(synchronize_session=False)
         )
         return result.rowcount == 1
@@ -108,12 +115,15 @@ class LaikeRepository:
         self,
         event_id: str,
         processed_at: datetime,
+        *,
+        claim_token: str,
     ) -> bool:
         result = self.session.execute(
             update(LaikeWebhookEvent)
             .where(
                 LaikeWebhookEvent.event_id == event_id,
                 LaikeWebhookEvent.status == "processing",
+                LaikeWebhookEvent.claim_token == claim_token,
             )
             .values(status="queued", processed_at=processed_at)
             .execution_options(synchronize_session=False)

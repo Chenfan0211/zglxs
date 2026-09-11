@@ -23,6 +23,15 @@ def test_laike_migration_declares_all_sync_tables_and_reversible_operations():
     assert "def downgrade" in revision
     assert "op.drop_table" in revision
 
+    claim_revision = (
+        Path(__file__).parents[1] / "alembic/versions/0003_laike_claim_token.py"
+    ).read_text(encoding="utf-8")
+    assert 'revision = "0003_laike_claim_token"' in claim_revision
+    assert 'down_revision = "0002_laike_sync"' in claim_revision
+    assert 'sa.Column("claim_token"' in claim_revision
+    assert "op.add_column" in claim_revision
+    assert "op.drop_column" in claim_revision
+
 
 def test_laike_migration_runs_on_sqlite_and_drops_sync_tables(tmp_path):
     database_url = f"sqlite+pysqlite:///{tmp_path / 'migration.db'}"
@@ -43,15 +52,18 @@ def test_laike_migration_runs_on_sqlite_and_drops_sync_tables(tmp_path):
     assert {
         column["name"] for column in inspect(engine).get_columns("laike_order")
     } >= {"provider_order_id", "payload_json", "status", "created_at"}
+    assert "claim_token" in {
+        column["name"]
+        for column in inspect(engine).get_columns("laike_webhook_event")
+    }
 
-    command.downgrade(config, "0001_baseline")
+    command.downgrade(config, "0002_laike_sync")
     tables_after_downgrade = set(inspect(engine).get_table_names())
+    assert "claim_token" not in {
+        column["name"]
+        for column in inspect(engine).get_columns("laike_webhook_event")
+    }
     assert not (
         tables_after_downgrade
-        & {
-            "laike_webhook_event",
-            "laike_order",
-            "laike_sync_cursor",
-            "laike_sync_run",
-        }
+        & set()
     )

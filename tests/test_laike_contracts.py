@@ -31,6 +31,19 @@ def test_laike_settings_are_disabled_and_have_safe_defaults(monkeypatch):
     assert settings.laike_app_secret is None
     assert settings.laike_access_token is None
     assert settings.laike_max_retries == 3
+    assert settings.laike_webhook_claim_timeout_seconds == 300
+
+
+def test_laike_webhook_claim_timeout_uses_environment_alias_and_positive_value(
+    monkeypatch,
+):
+    monkeypatch.setenv("LAIKE_WEBHOOK_CLAIM_TIMEOUT_SECONDS", "17")
+
+    settings = Settings()
+
+    assert settings.laike_webhook_claim_timeout_seconds == 17
+    with pytest.raises(ValidationError):
+        Settings(laike_webhook_claim_timeout_seconds=0)
 
 
 def test_protocol_objects_have_stable_shapes():

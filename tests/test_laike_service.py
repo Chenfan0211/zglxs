@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import json
 import asyncio
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import sessionmaker
 
+from app.core.settings import Settings
 from app.db.models.base import Base
 from app.db.models.laike import (
     LaikeOrder,
@@ -78,7 +80,7 @@ def service(session_factory, client):
     return LaikeSyncService(
         session_factory=session_factory,
         client=client,
-        settings=object(),
+        settings=Settings(),
     )
 
 
@@ -139,7 +141,7 @@ async def test_receive_webhook_retries_received_event_after_enqueue_failure(
     service = LaikeSyncService(
         session_factory=session_factory,
         client=client,
-        settings=object(),
+        settings=Settings(),
         enqueuer=enqueue,
     )
     raw_body = b'{"event_id":"evt-retry","order_id":"order-001"}'
@@ -182,13 +184,13 @@ async def test_concurrent_webhooks_only_the_claiming_service_enqueues(
     first_service = LaikeSyncService(
         session_factory=session_factory,
         client=client,
-        settings=object(),
+        settings=Settings(),
         enqueuer=first_enqueue,
     )
     second_service = LaikeSyncService(
         session_factory=session_factory,
         client=client,
-        settings=object(),
+        settings=Settings(),
         enqueuer=second_enqueue,
     )
     raw_body = b'{"event_id":"evt-claim","order_id":"order-001"}'
@@ -223,7 +225,7 @@ async def test_receive_webhook_copies_enqueue_values_before_default_commit_expir
     service = LaikeSyncService(
         session_factory=default_session_factory,
         client=client,
-        settings=object(),
+        settings=Settings(),
         enqueuer=enqueue,
     )
 
@@ -249,7 +251,7 @@ async def test_receive_webhook_releases_claim_when_enqueue_is_cancelled(
     service = LaikeSyncService(
         session_factory=session_factory,
         client=client,
-        settings=object(),
+        settings=Settings(),
         enqueuer=enqueue,
     )
 
@@ -276,7 +278,7 @@ async def test_receive_webhook_reclaims_stale_processing_event(
     service = LaikeSyncService(
         session_factory=session_factory,
         client=client,
-        settings=object(),
+        settings=Settings(),
         enqueuer=lambda event_id, payload: calls.append(event_id),
     )
     with session_factory() as session:
@@ -305,6 +307,79 @@ async def test_receive_webhook_reclaims_stale_processing_event(
                 LaikeWebhookEvent.event_id == "evt-stale"
             )
         ) == "queued"
+
+
+def test_stale_webhook_claim_cannot_finish_new_claim(
+    session_factory,
+):
+    now = datetime.now(timezone.utc)
+    with session_factory() as session:
+        repository = LaikeRepository(session)
+        repository.insert_webhook_event(
+            "evt-fenced",
+            {"event_id": "evt-fenced"},
+            {},
+            True,
+        )
+        session.commit()
+
+    with session_factory() as old_session:
+        old_repository = LaikeRepository(old_session)
+        old_token = old_repository.claim_webhook_event(
+            "evt-fenced",
+            claimed_at=now - timedelta(minutes=10),
+            stale_before=now - timedelta(minutes=5),
+        )
+        old_session.commit()
+
+    with session_factory() as new_session:
+        new_repository = LaikeRepository(new_session)
+        new_token = new_repository.claim_webhook_event(
+            "evt-fenced",
+            claimed_at=now,
+            stale_before=now - timedelta(minutes=5),
+        )
+        new_session.commit()
+
+    assert old_token is not None
+    assert new_token is not None
+    assert old_token != new_token
+    with session_factory() as old_session:
+        old_repository = LaikeRepository(old_session)
+        assert old_repository.release_webhook_claim(
+            "evt-fenced",
+            claim_token=old_token,
+        ) is False
+        assert old_repository.mark_webhook_queued(
+            "evt-fenced",
+            processed_at=now,
+            claim_token=old_token,
+        ) is False
+        old_session.commit()
+
+    with session_factory() as session:
+        event = session.scalar(
+            select(LaikeWebhookEvent).where(
+                LaikeWebhookEvent.event_id == "evt-fenced"
+            )
+        )
+        assert event.status == "processing"
+        assert event.claim_token == new_token
+
+
+def test_service_reads_webhook_claim_timeout_from_formal_settings(
+    session_factory,
+    client,
+):
+    settings = Settings(laike_webhook_claim_timeout_seconds=17)
+
+    service = LaikeSyncService(
+        session_factory=session_factory,
+        client=client,
+        settings=settings,
+    )
+
+    assert service.webhook_claim_timeout_seconds == 17
 
 
 @pytest.mark.asyncio
@@ -500,7 +575,7 @@ async def test_reconcile_works_with_default_expiring_session_factory(
     service = LaikeSyncService(
         session_factory=default_session_factory,
         client=client,
-        settings=object(),
+        settings=Settings(),
     )
     client.pages = [
         LaikePage(

@@ -260,3 +260,81 @@ python -m pytest tests/test_laike_service.py -q
 ### 本轮剩余边界
 
 `enqueuer=None` 时仍会把事件标记为 `queued`，该可选注入主要用于 Task 2 的持久化测试；Task 3 接入真实 FastAPI/Celery 路径时必须注入实际队列投递器，并由消费者按 event ID 幂等处理。
+
+## 最终复审修复报告：claim fencing 与配置
+
+### TDD RED
+
+先新增回归测试，覆盖：
+
+- 旧 claim 在 stale 重领产生新 claim 后，使用旧 token 调用 release/queued 不得修改新 claim；
+- `Settings` 默认提供 300 秒 claim timeout，支持 `LAIKE_WEBHOOK_CLAIM_TIMEOUT_SECONDS` 别名，并拒绝 `0`；
+- Service 从正式 `Settings` 读取配置值；
+- SQLite migration head 包含 `claim_token`，并可回滚到 `0002_laike_sync` 删除该列。
+
+运行：
+
+```text
+python -m pytest tests/test_laike_service.py tests/test_laike_migrations.py tests/test_laike_contracts.py -q
+.......FF............FF.............                                     [100%]
+4 failed, 32 passed
+```
+
+失败准确对应：claim 仍返回布尔值、旧 claim 没有所有权 token、正式 Settings 缺少 timeout 字段、`0003_laike_claim_token` 迁移不存在或未加入 head。
+
+### TDD GREEN
+
+- `LaikeWebhookEvent` 新增可空 `claim_token` 字段，兼容迁移前已有事件。
+- `claim_webhook_event` 每次成功 claim 生成随机 UUID 字符串，并返回 token；同时写入 `status='processing'`、`processed_at` 和 token。
+- `release_webhook_claim`、`mark_webhook_queued` 均以 `event_id + status='processing' + claim_token` 作为条件，旧 claim 不能释放或完成新 claim。
+- Service 将本次 token 贯穿 enqueue 异常释放、取消释放和成功 queued 收尾，并直接读取正式 `Settings.laike_webhook_claim_timeout_seconds`。
+- 新增 `0003_laike_claim_token.py`，upgrade 使用 `op.add_column`，downgrade 使用 `op.drop_column`；SQLite upgrade/downgrade 已执行验证。
+- Task 2 测试的服务实例统一使用正式 `Settings`，避免匿名 settings 掩盖配置契约。
+
+### 验证
+
+```text
+python -m pytest tests/test_laike_service.py tests/test_laike_migrations.py tests/test_laike_contracts.py -q
+.....................................                                    [100%]
+37 passed in 0.74s
+
+python -m pytest tests/test_laike_service.py -q
+...............                                                          [100%]
+15 passed in 0.44s
+
+python -m pytest -q
+........................................................................ [ 92%]
+......                                                                   [100%]
+78 passed in 1.07s
+```
+
+`git diff --check` 通过。
+
+### 最终复审自审
+
+- [x] claim 返回随机 UUID token，而不是布尔值。
+- [x] stale 旧 token 无法影响新 token 的 processing 状态。
+- [x] enqueue 成功、失败和取消路径均携带 token fencing。
+- [x] 正式 Settings 包含默认 300 秒、环境别名和 `gt=0` 校验。
+- [x] `0003_laike_claim_token` 可升级并回滚 claim_token 列。
+- [x] 保留取消、stale、游标历史环路、无 checkpoint、Alembic 等既有修复。
+- [x] 未解密 PHP，未写凭据或 HAR，未修改 Task 1 生产契约。
+
+### 最终复审边界
+
+claim fencing 只保护接收端状态收尾，防止 stale worker 以旧 token 改写新 claim；Task 3 的 Celery 消费者仍需以 event ID 实现消费幂等。
+
+### 提交前最终验证
+
+```text
+python -m pytest tests/test_laike_service.py tests/test_laike_migrations.py tests/test_laike_contracts.py -q
+.....................................                                    [100%]
+37 passed in 0.63s
+
+python -m pytest -q
+........................................................................ [ 84%]
+.............                                                            [100%]
+85 passed in 1.16s
+```
+
+`git diff --check` 通过。

@@ -87,6 +87,11 @@ class Settings(BaseSettings):
         default=300,
         validation_alias="LAIKE_OVERLAP_SECONDS",
     )
+    laike_webhook_claim_timeout_seconds: float = Field(
+        default=300,
+        validation_alias="LAIKE_WEBHOOK_CLAIM_TIMEOUT_SECONDS",
+        gt=0,
+    )
 
     @field_validator(
         "database_url",

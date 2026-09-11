@@ -18,6 +18,7 @@ class LaikeWebhookEvent(Base):
     headers_json: Mapped[dict[str, str]] = mapped_column(JSON, nullable=False)
     verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="received")
+    claim_token: Mapped[str | None] = mapped_column(String(36), nullable=True)
     received_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=lambda: datetime.now(timezone.utc)
     )
