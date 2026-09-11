@@ -93,3 +93,74 @@ python -m pytest -q
 
 - 当前任务只定义基础协议和标准化边界，未实现 webhook、数据库持久化、重试任务或真实来客 API 调用；这些属于后续任务范围。
 - RED 运行基于 `HEAD` 临时工作树，因为本任务测试和目标文件在本次操作开始时已作为未提交工作区草稿存在；工作区首次直接运行焦点测试已经是 GREEN。
+
+## Fix Report
+
+### 复审问题与修复
+
+1. `tests/test_laike_contracts.py`
+   - 增加四个协议对象的 `extra="forbid"` 负向测试，使用 `pytest.raises(ValidationError)` 验证未知字段被拒绝。
+   - 增加四个协议对象关键字段类型的负向测试，验证布尔字段不会接受整数隐式转换，且 `NormalizedOrder.payload_json` 不接受列表。
+   - 默认配置测试增加 `monkeypatch`，遍历并删除所有当前环境中的 `LAIKE_*` 变量后再断言安全默认值。
+2. `app/laike/contracts.py`
+   - 四个协议对象的 `ConfigDict` 增加 `strict=True`，阻止 Pydantic 对关键字段进行宽松类型转换。
+
+### Fix TDD RED
+
+补充负向测试后运行：
+
+```text
+python -m pytest tests/test_laike_contracts.py -q
+......FF.F...                                                            [100%]
+3 failed, 10 passed in 0.19s
+```
+
+三个失败均为布尔字段接受整数 `1`，证明原协议模型的关键类型约束未被严格执行。另在注入 `LAIKE_SYNC_MODE=write` 等环境变量后运行原默认值测试，结果为 `1 failed`，证明测试未清理环境变量时会被外部配置污染。
+
+### Fix TDD GREEN
+
+启用四个协议对象的严格校验后运行：
+
+```text
+python -m pytest tests/test_laike_contracts.py -q
+.............                                                            [100%]
+13 passed in 0.12s
+```
+
+### 修复后验证
+
+```text
+python -m pytest tests/test_business_foundation.py -q
+..........                                                               [100%]
+10 passed in 0.60s
+
+python -m pytest -q
+.............................................................            [100%]
+61 passed in 0.84s
+```
+
+完整 suite 已在修复后的工作区重新运行并通过。
+
+### Fix 自审与疑虑
+
+- 负向测试覆盖四个协议对象的未知字段拒绝和关键类型拒绝，断言真实 `ValidationError` 行为。
+- 默认值测试不再依赖运行环境中是否预先存在 `LAIKE_*` 变量。
+- 修复未改变标准化逻辑、配置字段名称或默认值。
+- 修复范围仅限 `app/laike/contracts.py`、`tests/test_laike_contracts.py` 和本报告。
+
+### 最终收尾验证
+
+提交前在 `E:\项目\zglxs-laike-sync` 重新执行：
+
+```text
+python -m pytest tests/test_laike_contracts.py -q
+13 passed in 0.13s
+
+python -m pytest -q
+61 passed in 0.89s
+
+git diff --check
+无差异格式错误。
+```
+
+最终未提交改动仅包含本报告、`app/laike/contracts.py` 和 `tests/test_laike_contracts.py`；确认均属于 Task 1 复审修复范围。

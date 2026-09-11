@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import os
+
+import pytest
+from pydantic import ValidationError
+
 from app.core.settings import Settings
 from app.laike.contracts import (
     LaikePage,
@@ -10,7 +15,11 @@ from app.laike.contracts import (
 from app.laike.normalizer import normalize_order
 
 
-def test_laike_settings_are_disabled_and_have_safe_defaults():
+def test_laike_settings_are_disabled_and_have_safe_defaults(monkeypatch):
+    for key in tuple(os.environ):
+        if key.startswith("LAIKE_"):
+            monkeypatch.delenv(key, raising=False)
+
     settings = Settings()
 
     assert settings.laike_sync_mode == "observe"
@@ -36,6 +45,34 @@ def test_protocol_objects_have_stable_shapes():
         "processed_count": 1,
         "failed_count": 0,
     }
+
+
+@pytest.mark.parametrize(
+    ("model", "data"),
+    [
+        (LaikePage, {"items": [], "unexpected": True}),
+        (WebhookVerification, {"verified": True, "unexpected": True}),
+        (NormalizedOrder, {"unexpected": True}),
+        (SyncResult, {"success": True, "unexpected": True}),
+    ],
+)
+def test_protocol_objects_reject_unknown_fields(model, data):
+    with pytest.raises(ValidationError):
+        model(**data)
+
+
+@pytest.mark.parametrize(
+    ("model", "data"),
+    [
+        (LaikePage, {"items": [], "has_more": 1}),
+        (WebhookVerification, {"verified": 1}),
+        (NormalizedOrder, {"payload_json": []}),
+        (SyncResult, {"success": 1}),
+    ],
+)
+def test_protocol_objects_reject_invalid_key_types(model, data):
+    with pytest.raises(ValidationError):
+        model(**data)
 
 
 def test_normalize_order_reads_only_stable_keys_and_preserves_payload():

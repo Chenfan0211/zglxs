@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class LaikePage(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", strict=True)
 
     items: list[dict[str, Any]]
     next_cursor: str | None = None
@@ -14,14 +14,14 @@ class LaikePage(BaseModel):
 
 
 class WebhookVerification(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", strict=True)
 
     verified: bool
     reason: str | None = None
 
 
 class NormalizedOrder(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", strict=True)
 
     order_id: str | None = None
     status: str | None = None
@@ -33,7 +33,7 @@ class NormalizedOrder(BaseModel):
 
 
 class SyncResult(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(extra="forbid", strict=True)
 
     success: bool
     processed_count: int = 0
