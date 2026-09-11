@@ -83,6 +83,44 @@ def test_settings_normalizes_blank_laike_values_to_none_and_parses_booleans():
     assert settings.laike_write_enabled is False
 
 
+def test_settings_reads_all_laike_environment_aliases(monkeypatch):
+    values = {
+        "LAIKE_BASE_URL": "https://laike.demo",
+        "LAIKE_ORDERS_PATH": "/configured-orders",
+        "LAIKE_APP_ID": "DEMO-APP",
+        "LAIKE_APP_SECRET": "DEMO-APP-SECRET",
+        "LAIKE_ACCESS_TOKEN": "DEMO-ACCESS-TOKEN",
+        "LAIKE_WEBHOOK_SECRET": "DEMO-WEBHOOK-SECRET",
+        "LAIKE_WEBHOOK_SIGNATURE_HEADER": "X-Demo-Signature",
+        "LAIKE_WEBHOOK_EVENT_ID_HEADER": "X-Demo-Event",
+        "LAIKE_SYNC_MODE": "shadow",
+        "LAIKE_WEBHOOK_ENABLED": "true",
+        "LAIKE_RECONCILE_ENABLED": "true",
+        "LAIKE_WRITE_ENABLED": "true",
+        "LAIKE_MAX_RETRIES": "7",
+        "LAIKE_OVERLAP_SECONDS": "61",
+    }
+    for key, value in values.items():
+        monkeypatch.setenv(key, value)
+
+    settings = Settings(_env_file=None)
+
+    assert settings.laike_base_url == "https://laike.demo"
+    assert settings.laike_orders_path == "/configured-orders"
+    assert settings.laike_app_id == "DEMO-APP"
+    assert settings.laike_app_secret == "DEMO-APP-SECRET"
+    assert settings.laike_access_token == "DEMO-ACCESS-TOKEN"
+    assert settings.laike_webhook_secret == "DEMO-WEBHOOK-SECRET"
+    assert settings.laike_webhook_signature_header == "X-Demo-Signature"
+    assert settings.laike_webhook_event_id_header == "X-Demo-Event"
+    assert settings.laike_sync_mode == "shadow"
+    assert settings.laike_webhook_enabled is True
+    assert settings.laike_reconcile_enabled is True
+    assert settings.laike_write_enabled is True
+    assert settings.laike_max_retries == 7
+    assert settings.laike_overlap_seconds == 61
+
+
 def test_sanitize_payload_redacts_sensitive_keys_recursively():
     capture = load_capture_module()
     payload = {

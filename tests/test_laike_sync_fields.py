@@ -60,6 +60,30 @@ def test_repository_webhook_defaults_and_redacts_signature_values():
     assert "secret-signature" not in repr(event)
 
 
+def test_repository_webhook_redacts_all_sensitive_header_categories():
+    session_factory = _session_factory()
+    headers = {
+        "Authorization": "Bearer demo-auth",
+        "Cookie": "session=demo-cookie",
+        "X-Access-Token": "demo-token",
+        "X-App-Secret": "demo-secret",
+        "X-Signature": "demo-signature",
+        "X-Password": "demo-password",
+        "X-Api-Key": "demo-api-key",
+        "X-Credential": "demo-credential",
+        "X-Trace": "trace-001",
+    }
+
+    with session_factory() as session:
+        event = LaikeRepository(session).insert_webhook_event(
+            "evt-sensitive-headers", {}, headers, True
+        )
+        session.commit()
+
+    assert event.headers_json == {"X-Trace": "trace-001"}
+    assert all(value not in repr(event) for value in headers.values() if value != "trace-001")
+
+
 def test_repository_webhook_accepts_source_and_error_reason():
     session_factory = _session_factory()
 
@@ -129,7 +153,7 @@ def test_repository_upsert_updates_mapping_and_times_but_preserves_first_discove
     assert persisted.original_created_at == {
         "raw": "2026-09-11T12:00:00+08:00"
     }
-    assert persisted.normalized_created_at is None
+    assert persisted.normalized_created_at == "2026-09-11T04:00:00Z"
     assert persisted.original_updated_at == "2026-09-11T13:00:00+08:00"
     assert persisted.normalized_updated_at == "2026-09-11T05:00:00Z"
     assert _as_utc(persisted.first_discovered_at) == first_discovered_at

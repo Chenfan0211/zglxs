@@ -16,6 +16,27 @@ from app.db.models.laike import (
 )
 
 
+SENSITIVE_HEADER_KEY_PARTS = (
+    "authorization",
+    "cookie",
+    "token",
+    "secret",
+    "signature",
+    "password",
+    "api-key",
+    "credential",
+)
+
+
+def sanitize_request_headers(headers: dict[str, str]) -> dict[str, str]:
+    """Keep tracing headers while excluding credential material from storage."""
+    return {
+        key: value
+        for key, value in headers.items()
+        if not any(part in key.lower().replace("_", "-") for part in SENSITIVE_HEADER_KEY_PARTS)
+    }
+
+
 class LaikeRepository:
     def __init__(self, session: Session) -> None:
         self.session = session
@@ -37,11 +58,7 @@ class LaikeRepository:
         existing = self.get_webhook_event(event_id)
         if existing is not None:
             return existing
-        safe_headers = {
-            key: value
-            for key, value in headers_json.items()
-            if "signature" not in key.lower()
-        }
+        safe_headers = sanitize_request_headers(headers_json)
         try:
             with self.session.begin_nested():
                 event = LaikeWebhookEvent(
@@ -193,14 +210,18 @@ class LaikeRepository:
             else:
                 return order
         order.payload_json = payload_json
-        order.status = status
-        order.created_at = created_at
-        order.subject_id = subject_id
-        order.product_id = product_id
-        order.original_created_at = original_created_at
-        order.normalized_created_at = normalized_created_at
-        order.original_updated_at = original_updated_at
-        order.normalized_updated_at = normalized_updated_at
+        for field, value in {
+            "status": status,
+            "created_at": created_at,
+            "subject_id": subject_id,
+            "product_id": product_id,
+            "original_created_at": original_created_at,
+            "normalized_created_at": normalized_created_at,
+            "original_updated_at": original_updated_at,
+            "normalized_updated_at": normalized_updated_at,
+        }.items():
+            if value is not None:
+                setattr(order, field, value)
         order.last_updated_at = now
         self.session.flush()
         return order

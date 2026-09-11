@@ -214,6 +214,24 @@ async def test_http_client_delegates_webhook_verification():
     assert result.source == "laike"
 
 
+@pytest.mark.asyncio
+async def test_http_client_verification_always_returns_configured_event_header():
+    body = b'{"event":"created"}'
+    secret = "webhook-secret"
+    signature = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    verifier = WebhookVerifier(secret, event_id_header="X-Laike-Event-Id")
+    transport = httpx.MockTransport(lambda request: httpx.Response(500))
+
+    async with httpx.AsyncClient(transport=transport) as http_client:
+        client = HttpLaikeClient("https://laike.test", "/orders", "access-token", http_client=http_client, webhook_verifier=verifier)
+        result = await client.verify_webhook(
+            {"X-Laike-Signature": f"sha256={signature}", "X-Laike-Event-Id": "evt-header-only"}, body
+        )
+
+    assert result.valid is True
+    assert result.event_id == "evt-header-only"
+
+
 def test_webhook_verifier_uses_exact_raw_body_and_event_header():
     secret = "webhook-secret"
     body = b'{"amount":1}\n'
@@ -527,7 +545,7 @@ async def test_service_uses_injected_explicit_normalizer(tmp_path):
     service = LaikeSyncService(
         session_factory=session_factory,
         client=client,
-        settings=Settings(_env_file=None),
+        settings=Settings(_env_file=None, laike_sync_mode="shadow"),
         normalizer=normalizer,
     )
 

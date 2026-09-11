@@ -275,7 +275,7 @@ def process_laike_webhook(task: Any, event_id: str) -> dict[str, Any]:
             )
         if failed_count:
             raise ValueError("webhook payload processing failed")
-        if not processed_count:
+        if not processed_count and service.settings.laike_sync_mode != "observe":
             raise ValueError("webhook payload was not processed")
         assert claim_token is not None
         if not _set_event_status(

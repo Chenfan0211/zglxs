@@ -18,6 +18,7 @@
 - 安全模式默认值为 `LAIKE_SYNC_MODE=observe`、`LAIKE_WEBHOOK_ENABLED=false`、
   `LAIKE_RECONCILE_ENABLED=false`、`LAIKE_WRITE_ENABLED=false`。
 - 在 PHP/Python 回放和数据库副作用比较全部通过前，migrated_routes 保持为空。
+- 分页单条失败时，已成功订单会保留而游标不推进；后续重试可重放整页，依靠订单唯一键幂等更新实现 at-least-once 语义。
 
 ## 下一步
 

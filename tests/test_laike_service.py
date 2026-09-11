@@ -17,7 +17,7 @@ from app.db.models.laike import (
     LaikeWebhookEvent,
 )
 from app.laike.repositories import LaikeRepository
-from app.laike.contracts import LaikePage, WebhookVerification
+from app.laike.contracts import LaikePage, NormalizedOrder, WebhookVerification
 from app.laike.normalizer import OrderFieldMapping, OrderNormalizer
 from app.laike.service import LaikeSyncService
 
@@ -81,7 +81,7 @@ def service(session_factory, client):
     return LaikeSyncService(
         session_factory=session_factory,
         client=client,
-        settings=Settings(),
+        settings=Settings(laike_sync_mode="shadow"),
         enqueuer=lambda event_id, payload: None,
     )
 
@@ -495,7 +495,7 @@ async def test_reconcile_persists_normalized_mapping_and_duplicate_timestamps(
     service = LaikeSyncService(
         session_factory=session_factory,
         client=client,
-        settings=Settings(),
+        settings=Settings(laike_sync_mode="shadow"),
         normalizer=OrderNormalizer(mapping),
     )
     client.pages = [
@@ -587,6 +587,62 @@ async def test_reconcile_isolates_one_failed_order_from_other_items(
         run = session.scalar(select(LaikeSyncRun))
         assert "exception_type=ValueError" in run.error_message
         assert "paid" not in run.error_message
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("mode", "write_enabled", "expected_orders"),
+    [("observe", False, 0), ("shadow", False, 1), ("write", False, 0), ("write", True, 1)],
+)
+async def test_reconcile_mode_controls_order_upserts(
+    session_factory, client, mode, write_enabled, expected_orders
+):
+    service = LaikeSyncService(
+        session_factory=session_factory,
+        client=client,
+        settings=Settings(
+            laike_sync_mode=mode,
+            laike_write_enabled=write_enabled,
+        ),
+    )
+    client.pages = [LaikePage(items=[{"order_id": "order-mode", "status": "paid"}], has_more=False)]
+
+    result = await service.reconcile_account("account-mode")
+
+    assert result.success is True
+    assert result.processed_count == 1
+    with session_factory() as session:
+        assert len(session.scalars(select(LaikeOrder)).all()) == expected_orders
+
+
+@pytest.mark.asyncio
+async def test_incremental_order_payload_does_not_clear_existing_non_empty_fields(
+    session_factory, client
+):
+    service = LaikeSyncService(
+        session_factory=session_factory,
+        client=client,
+        settings=Settings(laike_sync_mode="shadow"),
+        normalizer=lambda payload: NormalizedOrder(
+            order_id="order-preserve",
+            subject_id=payload.get("subject_id"),
+            product_id=payload.get("product_id"),
+            status=payload.get("status"),
+            original_created_at=payload.get("created_at"),
+            raw_payload=payload,
+        ),
+    )
+    client.pages = [LaikePage(items=[{"order_id": "order-preserve", "subject_id": "subject-1", "product_id": "product-1", "status": "paid", "created_at": "2026-09-11T00:00:00Z"}], has_more=False)]
+    await service.reconcile_account("account-preserve")
+    client.pages = [LaikePage(items=[{"order_id": "order-preserve", "status": "completed"}], has_more=False)]
+    await service.reconcile_account("account-preserve")
+
+    with session_factory() as session:
+        order = session.scalar(select(LaikeOrder).where(LaikeOrder.provider_order_id == "order-preserve"))
+        assert order.subject_id == "subject-1"
+        assert order.product_id == "product-1"
+        assert order.created_at == "2026-09-11T00:00:00Z"
+        assert order.status == "completed"
 
 
 @pytest.mark.asyncio

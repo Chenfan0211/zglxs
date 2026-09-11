@@ -52,7 +52,11 @@ class LaikeSyncService:
     ) -> SyncResult:
         verification = await self._verify_webhook(headers, raw_body)
         if not verification.verified:
-            return SyncResult(success=False, failed_count=1)
+            return SyncResult(
+                success=False,
+                failed_count=1,
+                reason=verification.reason or "invalid webhook signature",
+            )
 
         payload = json.loads(raw_body)
         event_id = self._event_id(
@@ -116,6 +120,26 @@ class LaikeSyncService:
                 claim_token=claimed,
             )
         return SyncResult(success=True, processed_count=1)
+
+    async def process_webhook(
+        self, event_id: str, payload: Mapping[str, Any] | None = None
+    ) -> SyncResult:
+        if payload is None:
+            with self.session_factory() as session:
+                event = LaikeRepository(session).get_webhook_event(event_id)
+                if event is None:
+                    return SyncResult(success=False, event_id=event_id, reason="event not found")
+                payload = event.payload_json
+        processed_count, failed_count, errors = await self._process_page(
+            LaikePage(items=[payload], has_more=False)
+        )
+        return SyncResult(
+            success=failed_count == 0,
+            event_id=event_id,
+            processed_count=processed_count,
+            failed_count=failed_count,
+            reason="; ".join(errors) if errors else None,
+        )
 
     async def reconcile_account(
         self,
@@ -250,24 +274,32 @@ class LaikeSyncService:
                     order = self.normalizer(payload)
                 if not order.order_id:
                     raise ValueError("normalized order has no order_id")
-                with UnitOfWork(self.session_factory) as unit:
-                    LaikeRepository(unit.session).upsert_order(
-                        order.order_id,
-                        order.payload_json,
-                        order.status,
-                        order.created_at,
-                        subject_id=order.subject_id,
-                        product_id=order.product_id,
-                        original_created_at=order.original_created_at,
-                        normalized_created_at=order.normalized_created_at,
-                        original_updated_at=order.original_updated_at,
-                        normalized_updated_at=order.normalized_updated_at,
-                    )
+                if self._orders_write_enabled:
+                    with UnitOfWork(self.session_factory) as unit:
+                        LaikeRepository(unit.session).upsert_order(
+                            order.order_id,
+                            order.payload_json,
+                            order.status,
+                            order.created_at,
+                            subject_id=order.subject_id,
+                            product_id=order.product_id,
+                            original_created_at=order.original_created_at,
+                            normalized_created_at=order.normalized_created_at,
+                            original_updated_at=order.original_updated_at,
+                            normalized_updated_at=order.normalized_updated_at,
+                        )
                 processed_count += 1
             except Exception as exc:
                 failed_count += 1
                 failure_summaries.append(self._order_error_summary(payload, exc))
         return processed_count, failed_count, failure_summaries
+
+    @property
+    def _orders_write_enabled(self) -> bool:
+        return self.settings.laike_sync_mode == "shadow" or (
+            self.settings.laike_sync_mode == "write"
+            and self.settings.laike_write_enabled is True
+        )
 
     def _read_cursor(self, account_id: str) -> str | None:
         with self.session_factory() as session:

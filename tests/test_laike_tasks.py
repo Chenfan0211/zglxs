@@ -41,9 +41,26 @@ def enabled_service(session_factory):
         settings=Settings(
             laike_webhook_enabled=True,
             laike_reconcile_enabled=True,
+            laike_sync_mode="shadow",
             laike_max_retries=2,
         ),
     )
+
+
+def test_process_webhook_observe_succeeds_without_upsert(session_factory, monkeypatch):
+    service = LaikeSyncService(
+        session_factory=session_factory,
+        client=FakeClient(),
+        settings=Settings(laike_webhook_enabled=True, laike_sync_mode="observe"),
+    )
+    add_event(session_factory, "evt-observe")
+    monkeypatch.setattr(laike_tasks, "_service_factory", lambda: service)
+
+    result = laike_tasks.process_laike_webhook.run("evt-observe")
+
+    assert result["status"] == "processed"
+    with session_factory() as session:
+        assert session.scalars(select(LaikeOrder)).all() == []
 
 
 def add_event(

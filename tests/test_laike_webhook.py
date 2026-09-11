@@ -191,7 +191,7 @@ async def test_webhook_is_disabled_by_default_and_returns_failure_envelope():
 
 
 @pytest.mark.asyncio
-async def test_webhook_rejects_missing_secret_without_calling_service():
+async def test_webhook_service_owns_missing_secret_verification():
     service = FakeService()
     app = make_app(enabled=True, secret=None, service=service)
 
@@ -201,9 +201,10 @@ async def test_webhook_rejects_missing_secret_without_calling_service():
         headers={"X-Laike-Signature": "anything"},
     )
 
-    assert response.status_code == 503
-    assert response.json()["code"] == 0
-    assert service.calls == []
+    assert response.status_code == 200
+    assert response.json()["code"] == 1
+    assert len(service.calls) == 1
+    assert service.calls[0][0]["x-laike-signature"] == "anything"
 
 
 @pytest.mark.asyncio
@@ -215,11 +216,20 @@ async def test_webhook_rejects_missing_secret_without_calling_service():
     ],
 )
 async def test_webhook_rejects_missing_or_invalid_signature(headers, message):
-    service = FakeService()
+    client = HmacLaikeClient("webhook-secret")
+
+    class VerifyingService(FakeService):
+        async def receive_webhook(self, headers, raw_body):
+            verification = await client.verify_webhook(headers, raw_body)
+            if not verification.verified:
+                return SyncResult(success=False, failed_count=1, reason=verification.reason)
+            return self.result
+
+    service = VerifyingService()
     app = make_app(
         enabled=True,
         service=service,
-        client=HmacLaikeClient("webhook-secret"),
+        client=client,
     )
     body = b'{"event_id":"evt-invalid-signature"}'
 
@@ -227,7 +237,7 @@ async def test_webhook_rejects_missing_or_invalid_signature(headers, message):
 
     assert response.status_code == 400
     assert response.json() == {"code": 0, "msg": message, "data": None}
-    assert service.calls == []
+    assert len(service.calls) == 0
 
 
 @pytest.mark.asyncio
@@ -279,6 +289,32 @@ async def test_webhook_valid_request_calls_service_and_returns_legacy_envelope()
         body,
         event_id="evt-valid",
     )["X-Laike-Signature"]
+
+
+@pytest.mark.asyncio
+async def test_webhook_route_delegates_verification_once_and_uses_service_reason():
+    class CountingClient(FakeLaikeClient):
+        async def verify_webhook(self, headers, raw_body):
+            self.calls.append((headers, raw_body))
+            return WebhookVerification(verified=True)
+
+    client = CountingClient()
+    class CountingService(FakeService):
+        async def receive_webhook(self, headers, raw_body):
+            self.calls.append((headers, raw_body))
+            await client.verify_webhook(headers, raw_body)
+            return self.result
+
+    service = CountingService(SyncResult(success=False, reason="invalid webhook signature"))
+    app = make_app(enabled=True, client=client, service=service)
+    body = b'{"event_id":"evt-route-reason"}'
+
+    response = await request(app, body, headers={"X-Laike-Signature": "ignored"})
+
+    assert response.status_code == 400
+    assert response.json()["msg"] == "invalid webhook signature"
+    assert len(client.calls) == 1
+    assert len(service.calls) == 1
 
 
 @pytest.mark.asyncio
