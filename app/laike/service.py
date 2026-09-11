@@ -256,6 +256,12 @@ class LaikeSyncService:
                         order.payload_json,
                         order.status,
                         order.created_at,
+                        subject_id=order.subject_id,
+                        product_id=order.product_id,
+                        original_created_at=order.original_created_at,
+                        normalized_created_at=order.normalized_created_at,
+                        original_updated_at=order.original_updated_at,
+                        normalized_updated_at=order.normalized_updated_at,
                     )
                 processed_count += 1
             except Exception as exc:

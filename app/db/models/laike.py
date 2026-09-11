@@ -17,6 +17,13 @@ class LaikeWebhookEvent(Base):
     payload_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     headers_json: Mapped[dict[str, str]] = mapped_column(JSON, nullable=False)
     verified: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    source: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        default="laike",
+        server_default="laike",
+    )
+    error_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="received")
     claim_token: Mapped[str | None] = mapped_column(String(36), nullable=True)
     retry_count: Mapped[int] = mapped_column(
@@ -49,6 +56,26 @@ class LaikeOrder(Base):
     payload_json: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     status: Mapped[str | None] = mapped_column(String(64), nullable=True)
     created_at: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    subject_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    product_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    original_created_at: Mapped[Any | None] = mapped_column(JSON, nullable=True)
+    normalized_created_at: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )
+    original_updated_at: Mapped[Any | None] = mapped_column(JSON, nullable=True)
+    normalized_updated_at: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )
+    first_discovered_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
+    last_updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+    )
 
 
 class LaikeSyncCursor(Base):

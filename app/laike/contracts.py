@@ -140,6 +140,38 @@ class SyncResult(BaseModel):
     success: bool
     processed_count: int = 0
     failed_count: int = 0
+    event_id: str | None = None
+    reason: str | None = None
+    fetched_count: int = 0
+    succeeded_count: int = 0
+    duplicate_count: int = 0
+
+    _legacy_shape: bool = PrivateAttr(default=False)
+
+    def __init__(self, **data: Any) -> None:
+        new_fields = (
+            "event_id",
+            "reason",
+            "fetched_count",
+            "succeeded_count",
+            "duplicate_count",
+        )
+        legacy_shape = not any(field_name in data for field_name in new_fields)
+        super().__init__(**data)
+        self._legacy_shape = legacy_shape
+
+    def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
+        result = super().model_dump(*args, **kwargs)
+        if self._legacy_shape:
+            for field_name in (
+                "event_id",
+                "reason",
+                "fetched_count",
+                "succeeded_count",
+                "duplicate_count",
+            ):
+                result.pop(field_name, None)
+        return result
 
 
 @runtime_checkable

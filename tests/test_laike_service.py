@@ -18,6 +18,7 @@ from app.db.models.laike import (
 )
 from app.laike.repositories import LaikeRepository
 from app.laike.contracts import LaikePage, WebhookVerification
+from app.laike.normalizer import OrderFieldMapping, OrderNormalizer
 from app.laike.service import LaikeSyncService
 
 
@@ -476,6 +477,78 @@ async def test_reconcile_upserts_duplicate_provider_order(
         assert len(orders) == 1
         assert orders[0].provider_order_id == "order-001"
         assert orders[0].status == "completed"
+
+
+@pytest.mark.asyncio
+async def test_reconcile_persists_normalized_mapping_and_duplicate_timestamps(
+    session_factory,
+    client,
+):
+    mapping = OrderFieldMapping(
+        order_id="order.id",
+        subject_id="buyer.id",
+        product_id="product.id",
+        status="status",
+        created_at="timestamps.created",
+        updated_at="timestamps.updated",
+    )
+    service = LaikeSyncService(
+        session_factory=session_factory,
+        client=client,
+        settings=Settings(),
+        normalizer=OrderNormalizer(mapping),
+    )
+    client.pages = [
+        LaikePage(
+            items=[
+                {
+                    "order": {"id": "order-001"},
+                    "buyer": {"id": "subject-001"},
+                    "product": {"id": "product-001"},
+                    "status": "paid",
+                    "timestamps": {
+                        "created": "2026-09-11T12:00:00+08:00",
+                        "updated": "2026-09-11T12:01:00+08:00",
+                    },
+                }
+            ],
+            has_more=False,
+        ),
+        LaikePage(
+            items=[
+                {
+                    "order": {"id": "order-001"},
+                    "buyer": {"id": "subject-002"},
+                    "product": {"id": "product-002"},
+                    "status": "completed",
+                    "timestamps": {
+                        "created": "2026-09-11T12:00:00+08:00",
+                        "updated": "2026-09-11T13:00:00+08:00",
+                    },
+                }
+            ],
+            has_more=False,
+        ),
+    ]
+
+    await service.reconcile_account("account-001")
+    with session_factory() as session:
+        first = session.scalar(select(LaikeOrder))
+        first_discovered_at = first.first_discovered_at
+        first_last_updated_at = first.last_updated_at
+
+    await service.reconcile_account("account-001")
+    with session_factory() as session:
+        persisted = session.scalar(select(LaikeOrder))
+
+    assert persisted.subject_id == "subject-002"
+    assert persisted.product_id == "product-002"
+    assert persisted.original_created_at == "2026-09-11T12:00:00+08:00"
+    assert persisted.normalized_created_at == "2026-09-11T04:00:00Z"
+    assert persisted.original_updated_at == "2026-09-11T13:00:00+08:00"
+    assert persisted.normalized_updated_at == "2026-09-11T05:00:00Z"
+    assert persisted.first_discovered_at == first_discovered_at
+    assert persisted.last_updated_at > first_last_updated_at
 
 
 @pytest.mark.asyncio

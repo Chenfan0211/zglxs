@@ -31,17 +31,26 @@ class LaikeRepository:
         payload_json: dict[str, Any],
         headers_json: dict[str, str],
         verified: bool,
+        source: str = "laike",
+        error_reason: str | None = None,
     ) -> LaikeWebhookEvent:
         existing = self.get_webhook_event(event_id)
         if existing is not None:
             return existing
+        safe_headers = {
+            key: value
+            for key, value in headers_json.items()
+            if "signature" not in key.lower()
+        }
         try:
             with self.session.begin_nested():
                 event = LaikeWebhookEvent(
                     event_id=event_id,
                     payload_json=payload_json,
-                    headers_json=headers_json,
+                    headers_json=safe_headers,
                     verified=verified,
+                    source=source,
+                    error_reason=error_reason,
                 )
                 self.session.add(event)
                 self.session.flush()
@@ -135,8 +144,20 @@ class LaikeRepository:
         provider_order_id: str,
         payload_json: dict[str, Any],
         status: str | None,
-        created_at: str | None,
+        created_at: str | None = None,
+        *,
+        subject_id: str | None = None,
+        product_id: str | None = None,
+        original_created_at: Any = None,
+        normalized_created_at: str | None = None,
+        original_updated_at: Any = None,
+        normalized_updated_at: str | None = None,
     ) -> LaikeOrder:
+        if original_created_at is None and created_at is not None:
+            original_created_at = created_at
+        if created_at is None and isinstance(original_created_at, str):
+            created_at = original_created_at
+        now = datetime.now(timezone.utc)
         order = self.session.scalar(
             select(LaikeOrder).where(
                 LaikeOrder.provider_order_id == provider_order_id
@@ -150,10 +171,17 @@ class LaikeRepository:
                         payload_json=payload_json,
                         status=status,
                         created_at=created_at,
+                        subject_id=subject_id,
+                        product_id=product_id,
+                        original_created_at=original_created_at,
+                        normalized_created_at=normalized_created_at,
+                        original_updated_at=original_updated_at,
+                        normalized_updated_at=normalized_updated_at,
+                        first_discovered_at=now,
+                        last_updated_at=now,
                     )
                     self.session.add(order)
                     self.session.flush()
-                return order
             except IntegrityError:
                 order = self.session.scalar(
                     select(LaikeOrder).where(
@@ -162,10 +190,18 @@ class LaikeRepository:
                 )
                 if order is None:
                     raise
-        else:
-            order.payload_json = payload_json
-            order.status = status
-            order.created_at = created_at
+            else:
+                return order
+        order.payload_json = payload_json
+        order.status = status
+        order.created_at = created_at
+        order.subject_id = subject_id
+        order.product_id = product_id
+        order.original_created_at = original_created_at
+        order.normalized_created_at = normalized_created_at
+        order.original_updated_at = original_updated_at
+        order.normalized_updated_at = normalized_updated_at
+        order.last_updated_at = now
         self.session.flush()
         return order
 
