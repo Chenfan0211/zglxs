@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import select, update
+from sqlalchemy import and_, or_, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -65,14 +65,30 @@ class LaikeRepository:
         self.session.flush()
         return event
 
-    def claim_webhook_event(self, event_id: str) -> bool:
+    def claim_webhook_event(
+        self,
+        event_id: str,
+        *,
+        claimed_at: datetime,
+        stale_before: datetime,
+    ) -> bool:
         result = self.session.execute(
             update(LaikeWebhookEvent)
             .where(
                 LaikeWebhookEvent.event_id == event_id,
-                LaikeWebhookEvent.status == "received",
+                or_(
+                    LaikeWebhookEvent.status == "received",
+                    and_(
+                        LaikeWebhookEvent.status == "processing",
+                        or_(
+                            LaikeWebhookEvent.processed_at.is_(None),
+                            LaikeWebhookEvent.processed_at < stale_before,
+                        ),
+                    ),
+                ),
             )
-            .values(status="processing")
+            .values(status="processing", processed_at=claimed_at)
+            .execution_options(synchronize_session=False)
         )
         return result.rowcount == 1
 
@@ -83,7 +99,8 @@ class LaikeRepository:
                 LaikeWebhookEvent.event_id == event_id,
                 LaikeWebhookEvent.status == "processing",
             )
-            .values(status="received")
+            .values(status="received", processed_at=None)
+            .execution_options(synchronize_session=False)
         )
         return result.rowcount == 1
 
@@ -99,6 +116,7 @@ class LaikeRepository:
                 LaikeWebhookEvent.status == "processing",
             )
             .values(status="queued", processed_at=processed_at)
+            .execution_options(synchronize_session=False)
         )
         return result.rowcount == 1
 

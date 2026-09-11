@@ -3,11 +3,13 @@ from __future__ import annotations
 import hashlib
 import inspect
 import json
+import asyncio
+from datetime import datetime, timedelta, timezone
 from collections.abc import Callable, Mapping
-from datetime import datetime, timezone
 from typing import Any
 
 from app.db.session import UnitOfWork
+from app.db.models.laike import LaikeSyncRun
 from app.laike.contracts import LaikePage, SyncResult, WebhookVerification
 from app.laike.normalizer import normalize_order
 
@@ -32,6 +34,9 @@ class LaikeSyncService:
         self.client = client
         self.settings = settings
         self.enqueuer = enqueuer
+        self.webhook_claim_timeout_seconds = float(
+            getattr(settings, "laike_webhook_claim_timeout_seconds", 300)
+        )
 
     async def receive_webhook(
         self,
@@ -44,15 +49,21 @@ class LaikeSyncService:
 
         payload = json.loads(raw_body)
         event_id = self._event_id(headers, payload, raw_body)
+        now = datetime.now(timezone.utc)
+        stale_before = now - timedelta(seconds=self.webhook_claim_timeout_seconds)
         with UnitOfWork(self.session_factory) as unit:
             repository = LaikeRepository(unit.session)
             event = repository.get_webhook_event(event_id)
-            if event is not None and event.status != "received":
+            if event is not None and event.status == "queued":
                 return SyncResult(success=True)
             event = repository.insert_webhook_event(
                 event_id, payload, dict(headers), verification.verified
             )
-            claimed = repository.claim_webhook_event(event_id)
+            claimed = repository.claim_webhook_event(
+                event_id,
+                claimed_at=now,
+                stale_before=stale_before,
+            )
             enqueue_event_id = event.event_id
             enqueue_payload = dict(event.payload_json)
 
@@ -62,6 +73,10 @@ class LaikeSyncService:
         try:
             if self.enqueuer is not None:
                 await _maybe_await(self.enqueuer(enqueue_event_id, enqueue_payload))
+        except asyncio.CancelledError:
+            with UnitOfWork(self.session_factory) as unit:
+                LaikeRepository(unit.session).release_webhook_claim(event_id)
+            raise
         except Exception:
             with UnitOfWork(self.session_factory) as unit:
                 LaikeRepository(unit.session).release_webhook_claim(event_id)
@@ -85,6 +100,7 @@ class LaikeSyncService:
             run = LaikeRepository(unit.session).start_run(
                 account_id, start_time, end_time
             )
+            run_id = run.id
 
         processed_count = 0
         failed_count = 0
@@ -110,7 +126,7 @@ class LaikeSyncService:
                 if page_failed:
                     page_success = False
                 if not page.has_more:
-                    if page.next_cursor is not None:
+                    if page.next_cursor:
                         final_cursor = page.next_cursor
                     break
                 if not page.next_cursor:
@@ -138,7 +154,7 @@ class LaikeSyncService:
 
         with UnitOfWork(self.session_factory) as unit:
             repository = LaikeRepository(unit.session)
-            persisted_run = unit.session.get(type(run), run.id)
+            persisted_run = unit.session.get(LaikeSyncRun, run_id)
             assert persisted_run is not None
             repository.finish_run(
                 persisted_run,

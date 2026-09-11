@@ -211,3 +211,52 @@ python -m pytest -q
 ### 本轮边界
 
 原子 claim 防止接收端重复 enqueue；真实 Celery 任务消费者仍需在后续 Task 3 以 event ID 实现消费幂等。本轮未引入锁表、猜测字段或额外业务协议。
+
+## 复审第二轮修复报告
+
+### RED
+
+新增回归测试覆盖：
+
+- enqueue 被 `asyncio.CancelledError` 中断时释放 webhook claim；
+- 没有队列的旧 `processing` 事件可被重新 claim；
+- 末页返回空字符串 checkpoint 时保留旧 cursor；
+- 使用默认 `expire_on_commit=True` 的 session factory 完成 reconcile 并写入 `sync_run`。
+
+首次运行：
+
+```text
+python -m pytest tests/test_laike_service.py -q
+.....FF.....FF.....                                                      [100%]
+4 failed, 15 passed
+```
+
+失败分别暴露了取消未释放、processing 事件不可恢复、空 checkpoint 清空旧 cursor 和 detached `run.id`。
+
+### GREEN
+
+- `claim_webhook_event` 支持 `received` 和超时/无时间戳的 `processing` 事件原子重领，claim 时写入时间戳；释放 claim 时清除时间戳。
+- Webhook 分支单独捕获 `asyncio.CancelledError`，释放 claim 后继续抛出取消信号；普通异常释放 claim 并返回失败。
+- reconcile 在事务内复制 `run.id`，不再从已关闭 session 的 ORM 对象读取主键。
+- 末页只有非空 `next_cursor` 才替换最终 checkpoint；维护 `seen_cursors` 防止历史游标环路。
+- 所有条件更新关闭 ORM evaluate 同步，避免 SQLite 将 naive 数据库时间与 aware Python 时间比较。
+
+验证：
+
+```text
+python -m pytest tests/test_laike_service.py -q
+...................                                                      [100%]
+19 passed in 0.44s
+```
+
+### 本轮自审
+
+- [x] 取消和普通 enqueue 异常均不会遗留不可恢复的 claim。
+- [x] stale/无时间戳 processing 事件可重新进入 enqueue。
+- [x] 默认 session factory 可完成 sync run 收尾。
+- [x] 空字符串 checkpoint 不会清空旧游标。
+- [x] 没有解密 PHP、真实凭据或 HAR。
+
+### 本轮剩余边界
+
+`enqueuer=None` 时仍会把事件标记为 `queued`，该可选注入主要用于 Task 2 的持久化测试；Task 3 接入真实 FastAPI/Celery 路径时必须注入实际队列投递器，并由消费者按 event ID 幂等处理。

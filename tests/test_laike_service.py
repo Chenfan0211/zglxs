@@ -239,6 +239,75 @@ async def test_receive_webhook_copies_enqueue_values_before_default_commit_expir
 
 
 @pytest.mark.asyncio
+async def test_receive_webhook_releases_claim_when_enqueue_is_cancelled(
+    session_factory,
+    client,
+):
+    async def enqueue(event_id, payload):
+        raise asyncio.CancelledError()
+
+    service = LaikeSyncService(
+        session_factory=session_factory,
+        client=client,
+        settings=object(),
+        enqueuer=enqueue,
+    )
+
+    with pytest.raises(asyncio.CancelledError):
+        await service.receive_webhook(
+            {"X-Event-ID": "evt-cancel"},
+            b'{"event_id":"evt-cancel","order_id":"order-001"}',
+        )
+
+    with session_factory() as session:
+        assert session.scalar(
+            select(LaikeWebhookEvent.status).where(
+                LaikeWebhookEvent.event_id == "evt-cancel"
+            )
+        ) == "received"
+
+
+@pytest.mark.asyncio
+async def test_receive_webhook_reclaims_stale_processing_event(
+    session_factory,
+    client,
+):
+    calls: list[str] = []
+    service = LaikeSyncService(
+        session_factory=session_factory,
+        client=client,
+        settings=object(),
+        enqueuer=lambda event_id, payload: calls.append(event_id),
+    )
+    with session_factory() as session:
+        session.add(
+            LaikeWebhookEvent(
+                event_id="evt-stale",
+                payload_json={"event_id": "evt-stale", "order_id": "order-001"},
+                headers_json={},
+                verified=True,
+                status="processing",
+                processed_at=None,
+            )
+        )
+        session.commit()
+
+    result = await service.receive_webhook(
+        {"X-Event-ID": "evt-stale"},
+        b'{"event_id":"evt-stale","order_id":"order-001"}',
+    )
+
+    assert result.success is True
+    assert calls == ["evt-stale"]
+    with session_factory() as session:
+        assert session.scalar(
+            select(LaikeWebhookEvent.status).where(
+                LaikeWebhookEvent.event_id == "evt-stale"
+            )
+        ) == "queued"
+
+
+@pytest.mark.asyncio
 async def test_reconcile_upserts_duplicate_provider_order(
     session_factory,
     client,
@@ -393,6 +462,65 @@ async def test_reconcile_preserves_old_cursor_when_final_page_has_no_checkpoint(
                 LaikeSyncCursor.account_id == "account-001"
             )
         ) == "old-cursor"
+
+
+@pytest.mark.asyncio
+async def test_reconcile_preserves_old_cursor_when_final_page_cursor_is_empty(
+    session_factory,
+    client,
+    service,
+):
+    with session_factory() as session:
+        session.add(LaikeSyncCursor(account_id="account-001", cursor="old-cursor"))
+        session.commit()
+    client.pages = [
+        LaikePage(
+            items=[{"order_id": "order-001", "status": "paid"}],
+            next_cursor="",
+            has_more=False,
+        )
+    ]
+
+    result = await service.reconcile_account("account-001")
+
+    assert result.success is True
+    with session_factory() as session:
+        assert session.scalar(
+            select(LaikeSyncCursor.cursor).where(
+                LaikeSyncCursor.account_id == "account-001"
+            )
+        ) == "old-cursor"
+
+
+@pytest.mark.asyncio
+async def test_reconcile_works_with_default_expiring_session_factory(
+    default_session_factory,
+    client,
+):
+    service = LaikeSyncService(
+        session_factory=default_session_factory,
+        client=client,
+        settings=object(),
+    )
+    client.pages = [
+        LaikePage(
+            items=[{"order_id": "order-001", "status": "paid"}],
+            next_cursor="cursor-001",
+            has_more=False,
+        )
+    ]
+
+    result = await service.reconcile_account("account-001")
+
+    assert result.success is True
+    with default_session_factory() as session:
+        run = session.scalar(select(LaikeSyncRun))
+        assert run.status == "succeeded"
+        assert session.scalar(
+            select(LaikeSyncCursor.cursor).where(
+                LaikeSyncCursor.account_id == "account-001"
+            )
+        ) == "cursor-001"
 
 
 @pytest.mark.asyncio
