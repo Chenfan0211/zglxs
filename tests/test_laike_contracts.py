@@ -1,0 +1,81 @@
+from __future__ import annotations
+
+from app.core.settings import Settings
+from app.laike.contracts import (
+    LaikePage,
+    NormalizedOrder,
+    SyncResult,
+    WebhookVerification,
+)
+from app.laike.normalizer import normalize_order
+
+
+def test_laike_settings_are_disabled_and_have_safe_defaults():
+    settings = Settings()
+
+    assert settings.laike_sync_mode == "observe"
+    assert settings.laike_webhook_enabled is False
+    assert settings.laike_reconcile_enabled is False
+    assert settings.laike_write_enabled is False
+    assert settings.laike_webhook_secret is None
+    assert settings.laike_app_id is None
+    assert settings.laike_app_secret is None
+    assert settings.laike_access_token is None
+    assert settings.laike_max_retries == 3
+
+
+def test_protocol_objects_have_stable_shapes():
+    page = LaikePage(items=[], next_cursor=None, has_more=False)
+    verification = WebhookVerification(verified=True, reason=None)
+    result = SyncResult(success=True, processed_count=1, failed_count=0)
+
+    assert page.model_dump() == {"items": [], "next_cursor": None, "has_more": False}
+    assert verification.model_dump() == {"verified": True, "reason": None}
+    assert result.model_dump() == {
+        "success": True,
+        "processed_count": 1,
+        "failed_count": 0,
+    }
+
+
+def test_normalize_order_reads_only_stable_keys_and_preserves_payload():
+    payload = {
+        "order_id": "ORDER-001",
+        "status": "paid",
+        "created_at": "2026-09-11T12:00:00+08:00",
+        "unknown_business_field": {"keep": True},
+    }
+
+    order = normalize_order(payload)
+
+    assert isinstance(order, NormalizedOrder)
+    assert order.order_id == "ORDER-001"
+    assert order.status == "paid"
+    assert order.created_at == "2026-09-11T12:00:00+08:00"
+    assert order.payload_json == payload
+    assert "unknown_business_field" not in order.model_fields_set
+
+
+def test_normalize_order_allows_missing_order_id_without_guessing():
+    payload = {"status": "paid", "id": "do-not-promote"}
+
+    order = normalize_order(payload)
+
+    assert order.order_id is None
+    assert order.payload_json == payload
+
+
+def test_normalize_order_redacted_log_metadata_contains_no_secrets():
+    payload = {
+        "order_id": "ORDER-001",
+        "access_token": "secret-token",
+        "app_secret": "secret-app",
+        "buyer_phone": "13800000000",
+    }
+
+    order = normalize_order(payload)
+    metadata = order.log_metadata()
+
+    assert metadata == {"order_id": "ORDER-001", "has_payload": True}
+    assert "secret-token" not in repr(metadata)
+    assert "13800000000" not in repr(metadata)
