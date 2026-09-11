@@ -135,13 +135,24 @@ git commit -m "chore: bootstrap python migration project"
 - [ ] **Step 1: Write the failing test**
 
 ```python
-from fastapi.testclient import TestClient
+import httpx
+import pytest
 
 from app.core.settings import Settings
 from app.main import create_app
 
 
-def test_live_health_is_available_without_database():
+async def request(app, path: str, client=("127.0.0.1", 123)):
+    transport = httpx.ASGITransport(app=app, client=client)
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://testserver",
+    ) as http_client:
+        return await http_client.get(path)
+
+
+@pytest.mark.asyncio
+async def test_live_health_is_available_without_database():
     app = create_app(
         Settings(
             app_env="test",
@@ -154,13 +165,14 @@ def test_live_health_is_available_without_database():
     from app.api.health import require_loopback
 
     app.dependency_overrides[require_loopback] = lambda: None
-    response = TestClient(app).get("/internal/health/live")
+    response = await request(app, "/internal/health/live")
 
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
 
-def test_ready_health_reports_unconfigured_database():
+@pytest.mark.asyncio
+async def test_ready_health_reports_unconfigured_database():
     app = create_app(
         Settings(
             app_env="test",
@@ -173,7 +185,7 @@ def test_ready_health_reports_unconfigured_database():
     from app.api.health import require_loopback
 
     app.dependency_overrides[require_loopback] = lambda: None
-    response = TestClient(app).get("/internal/health/ready")
+    response = await request(app, "/internal/health/ready")
 
     assert response.status_code == 503
     assert response.json()["detail"] == "database is not configured"
