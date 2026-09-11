@@ -256,3 +256,30 @@ git diff --check
 通过；仅有 Windows 工作区的 LF/CRLF 转换提示，无 whitespace 错误。
 
 HMAC signature header 和 event ID 候选仍仅作为兼容占位，报告不将其表述为真实来客协议；未解密 PHP，未写入凭据或 HAR，未登记新的 `migrated_routes`。
+
+## 第二轮复审补强（2026-09-12）
+
+### 修复内容
+
+- retry scanner 为每次 `retry_scheduled` 投递生成唯一租约 token，复用现有 `claim_token` 字段作为 fencing token。
+- 投递异常回收必须同时匹配 `event_id`、`status=retry_scheduled` 和本次 token；旧投递即使与新租约拥有相同的 `retry_scheduled_at`，也不能覆盖新租约。
+- 保持既有唯一权威契约：消费失败先持久化 `failed`、递增 `retry_count`、写入 future `next_retry_at`，Celery countdown 期间 scanner 不调度；到期后 scanner 与 Celery 任务通过条件状态更新竞争，只有成功 claim 的一方继续处理，业务计数始终来自持久化字段。
+- API 默认 enqueuer 继续绑定 resolved settings 对应的显式 task app；worker 入口 `app.worker.tasks:celery_app` 与来客任务注册保持一致，未连接真实 Redis 或 provider。
+
+### TDD RED/GREEN
+
+新增回归覆盖：
+
+- Celery 失败后的 countdown 期间 scanner 不重复 delay；
+- Celery request 重启后到期 scanner 仍按持久化 `retry_count` 调度；
+- 同一 `retry_scheduled_at` 下旧投递异常不能清除新租约。
+
+focused：先得到 `1 failed, 42 passed`，失败为旧租约回收条件缺少 token；补强后 `43 passed`。
+
+### 最终验证
+
+- 完整测试：`128 passed`
+- `python -m compileall -q app alembic tools`：通过
+- `git diff --check`：通过；仅有 Windows 工作区换行转换提示，无 whitespace 错误。
+
+本轮无需新增 migration：租约 token 复用已有 `claim_token`，不改变模型字段，也未引入真实 provider 协议或敏感数据。

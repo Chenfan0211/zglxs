@@ -415,6 +415,141 @@ def test_failure_persists_retry_schedule_and_scanner_waits_for_countdown(
     assert enqueued == []
 
 
+def test_failed_celery_retry_is_not_scanned_before_persisted_due_time(
+    session_factory,
+    enabled_service,
+    monkeypatch,
+):
+    add_event(session_factory, "evt-celery-countdown-race", retry_count=0)
+    monkeypatch.setattr(laike_tasks, "_service_factory", lambda: enabled_service)
+    monkeypatch.setattr(
+        enabled_service,
+        "_process_page",
+        lambda page: _failed_page(),
+    )
+    monkeypatch.setattr(
+        laike_tasks.process_laike_webhook,
+        "retry",
+        lambda **kwargs: (_ for _ in ()).throw(RuntimeError("retry requested")),
+    )
+
+    with pytest.raises(RuntimeError, match="retry requested"):
+        laike_tasks.process_laike_webhook.run("evt-celery-countdown-race")
+
+    enqueued: list[str] = []
+    monkeypatch.setattr(
+        laike_tasks.process_laike_webhook,
+        "delay",
+        lambda event_id: enqueued.append(event_id),
+    )
+    assert laike_tasks.retry_failed_laike_events.run() == {
+        "status": "queued",
+        "count": 0,
+    }
+    assert enqueued == []
+    with session_factory() as session:
+        event = session.scalar(
+            select(LaikeWebhookEvent).where(
+                LaikeWebhookEvent.event_id == "evt-celery-countdown-race"
+            )
+        )
+        assert event is not None
+        assert event.status == "failed"
+        assert event.retry_count == 1
+        assert event.next_retry_at is not None
+
+
+def test_retry_scanner_due_event_uses_persisted_count_after_celery_request_restart(
+    session_factory,
+    enabled_service,
+    monkeypatch,
+):
+    add_event(
+        session_factory,
+        "evt-celery-request-restart",
+        status="failed",
+        retry_count=1,
+        next_retry_at=datetime.now(timezone.utc) - timedelta(seconds=1),
+    )
+    monkeypatch.setattr(laike_tasks, "_service_factory", lambda: enabled_service)
+    enqueued: list[str] = []
+    monkeypatch.setattr(
+        laike_tasks.process_laike_webhook,
+        "delay",
+        lambda event_id: enqueued.append(event_id),
+    )
+
+    laike_tasks.process_laike_webhook.push_request(retries=0)
+    try:
+        result = laike_tasks.retry_failed_laike_events.run()
+    finally:
+        laike_tasks.process_laike_webhook.pop_request()
+
+    assert result == {"status": "queued", "count": 1}
+    assert enqueued == ["evt-celery-request-restart"]
+    with session_factory() as session:
+        event = session.scalar(
+            select(LaikeWebhookEvent).where(
+                LaikeWebhookEvent.event_id == "evt-celery-request-restart"
+            )
+        )
+        assert event is not None
+        assert event.status == "retry_scheduled"
+        assert event.retry_count == 1
+        assert event.next_retry_at is not None
+
+
+def test_old_retry_delivery_failure_cannot_clear_a_new_lease_with_same_timestamp(
+    session_factory,
+    enabled_service,
+    monkeypatch,
+):
+    add_event(
+        session_factory,
+        "evt-retry-lease-fencing",
+        status="failed",
+        retry_count=1,
+        next_retry_at=datetime.now(timezone.utc) - timedelta(seconds=1),
+    )
+    monkeypatch.setattr(laike_tasks, "_service_factory", lambda: enabled_service)
+
+    def first_delivery(event_id):
+        with session_factory() as session:
+            event = session.scalar(
+                select(LaikeWebhookEvent).where(
+                    LaikeWebhookEvent.event_id == event_id
+                )
+            )
+            assert event is not None
+            first_schedule = event.retry_scheduled_at
+            assert event.claim_token is not None
+            session.execute(
+                LaikeWebhookEvent.__table__.update()
+                .where(LaikeWebhookEvent.event_id == event_id)
+                .values(
+                    status="retry_scheduled",
+                    retry_scheduled_at=first_schedule,
+                    claim_token="new-lease-token",
+                )
+            )
+            session.commit()
+        raise RuntimeError("old delivery failed")
+
+    monkeypatch.setattr(laike_tasks.process_laike_webhook, "delay", first_delivery)
+    result = laike_tasks.retry_failed_laike_events.run()
+
+    assert result == {"status": "queued", "count": 0}
+    with session_factory() as session:
+        event = session.scalar(
+            select(LaikeWebhookEvent).where(
+                LaikeWebhookEvent.event_id == "evt-retry-lease-fencing"
+            )
+        )
+        assert event is not None
+        assert event.status == "retry_scheduled"
+        assert event.claim_token == "new-lease-token"
+
+
 def test_second_retry_uses_persisted_count_even_when_celery_request_restarts(
     session_factory,
     enabled_service,

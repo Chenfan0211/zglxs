@@ -365,8 +365,9 @@ def retry_failed_laike_events() -> dict[str, Any]:
                 )
             )
         )
-        scheduled_events: list[tuple[str, datetime]] = []
+        scheduled_events: list[tuple[str, str]] = []
         for event_id in candidates:
+            schedule_token = str(uuid4())
             result = session.execute(
                 update(LaikeWebhookEvent)
                 .where(
@@ -398,17 +399,17 @@ def retry_failed_laike_events() -> dict[str, Any]:
                 .values(
                     status="retry_scheduled",
                     processed_at=None,
-                    claim_token=None,
+                    claim_token=schedule_token,
                     retry_scheduled_at=now,
                 )
                 .execution_options(synchronize_session=False)
             )
             if result.rowcount == 1:
-                scheduled_events.append((event_id, now))
+                scheduled_events.append((event_id, schedule_token))
         session.commit()
 
     queued_count = 0
-    for event_id, scheduled_at in scheduled_events:
+    for event_id, schedule_token in scheduled_events:
         try:
             process_laike_webhook.delay(event_id)
         except Exception:
@@ -418,7 +419,7 @@ def retry_failed_laike_events() -> dict[str, Any]:
                     .where(
                         LaikeWebhookEvent.event_id == event_id,
                         LaikeWebhookEvent.status == "retry_scheduled",
-                        LaikeWebhookEvent.retry_scheduled_at == scheduled_at,
+                        LaikeWebhookEvent.claim_token == schedule_token,
                     )
                     .values(
                         status="failed",
