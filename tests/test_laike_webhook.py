@@ -1,0 +1,323 @@
+from __future__ import annotations
+
+import hashlib
+import hmac
+import json
+
+import httpx
+import pytest
+from sqlalchemy import create_engine, select
+from sqlalchemy.orm import sessionmaker
+
+from app.core.settings import Settings
+from app.db.models.base import Base
+from app.db.models.laike import LaikeWebhookEvent
+from app.laike.client import HmacLaikeClient
+from app.laike.contracts import SyncResult, WebhookVerification
+from app.main import create_app
+
+
+class FakeLaikeClient:
+    def __init__(self, verification: WebhookVerification | None = None) -> None:
+        self.verification = verification or WebhookVerification(verified=True)
+        self.calls: list[tuple[dict[str, str], bytes]] = []
+
+    async def verify_webhook(
+        self,
+        headers: dict[str, str],
+        raw_body: bytes,
+    ) -> WebhookVerification:
+        self.calls.append((headers, raw_body))
+        return self.verification
+
+    async def fetch_orders(
+        self,
+        account_id: str,
+        cursor: str | None = None,
+        start_time: str | None = None,
+        end_time: str | None = None,
+    ):
+        raise AssertionError("webhook tests must not fetch orders")
+
+
+class FakeService:
+    def __init__(self, result: SyncResult | None = None) -> None:
+        self.result = result or SyncResult(success=True, processed_count=1)
+        self.calls: list[tuple[dict[str, str], bytes]] = []
+
+    async def receive_webhook(
+        self,
+        headers: dict[str, str],
+        raw_body: bytes,
+    ) -> SyncResult:
+        self.calls.append((headers, raw_body))
+        return self.result
+
+
+def signed_headers(secret: str, body: bytes, event_id: str = "evt-001") -> dict[str, str]:
+    signature = hmac.new(secret.encode(), body, hashlib.sha256).hexdigest()
+    return {
+        "X-Event-ID": event_id,
+        "X-Laike-Signature": f"sha256={signature}",
+    }
+
+
+def test_hmac_client_uses_sha256_and_rejects_missing_or_wrong_signature():
+    secret = "webhook-secret"
+    body = b'{"event_id":"evt-hmac"}'
+    client = HmacLaikeClient(secret)
+    headers = signed_headers(secret, body, event_id="evt-hmac")
+
+    assert client.verify_webhook(headers, body).verified is True
+    assert client.verify_webhook({}, body).verified is False
+    assert (
+        client.verify_webhook(
+            {"X-Laike-Signature": "sha256=wrong"},
+            body,
+        ).verified
+        is False
+    )
+    assert HmacLaikeClient(None).verify_webhook(headers, body).verified is False
+
+
+async def request(
+    app,
+    body: bytes,
+    headers: dict[str, str] | None = None,
+):
+    transport = httpx.ASGITransport(app=app, client=("127.0.0.1", 123))
+    async with httpx.AsyncClient(
+        transport=transport,
+        base_url="http://testserver",
+    ) as client:
+        return await client.post(
+            "/internal/laike/webhook",
+            content=body,
+            headers=headers,
+        )
+
+
+def make_app(
+    *,
+    enabled: bool,
+    secret: str | None = "webhook-secret",
+    client: FakeLaikeClient | None = None,
+    service: FakeService | None = None,
+):
+    settings = Settings(
+        app_env="test",
+        database_url=None,
+        php_baseline_url=None,
+        laike_webhook_enabled=enabled,
+        laike_webhook_secret=secret,
+    )
+    resolved_service = service or FakeService()
+    return create_app(
+        settings,
+        laike_client=client or FakeLaikeClient(),
+        laike_service_factory=lambda: resolved_service,
+    )
+
+
+@pytest.mark.asyncio
+async def test_webhook_is_disabled_by_default_and_returns_failure_envelope():
+    app = make_app(enabled=False)
+
+    response = await request(
+        app,
+        b'{"event_id":"evt-disabled"}',
+        headers={"X-Laike-Signature": "ignored"},
+    )
+
+    assert response.status_code == 503
+    assert response.json() == {
+        "code": 0,
+        "msg": "laike webhook is disabled",
+        "data": None,
+    }
+
+
+@pytest.mark.asyncio
+async def test_webhook_rejects_missing_secret_without_calling_service():
+    service = FakeService()
+    app = make_app(enabled=True, secret=None, service=service)
+
+    response = await request(
+        app,
+        b'{"event_id":"evt-no-secret"}',
+        headers={"X-Laike-Signature": "anything"},
+    )
+
+    assert response.status_code == 503
+    assert response.json()["code"] == 0
+    assert service.calls == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("headers", "message"),
+    [
+        ({}, "missing webhook signature"),
+        ({"X-Laike-Signature": "sha256=wrong"}, "invalid webhook signature"),
+    ],
+)
+async def test_webhook_rejects_missing_or_invalid_signature(headers, message):
+    service = FakeService()
+    app = make_app(
+        enabled=True,
+        service=service,
+        client=HmacLaikeClient("webhook-secret"),
+    )
+    body = b'{"event_id":"evt-invalid-signature"}'
+
+    response = await request(app, body, headers=headers)
+
+    assert response.status_code == 400
+    assert response.json() == {"code": 0, "msg": message, "data": None}
+    assert service.calls == []
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("body", [b"", b"not-json", b"[]", b"null"])
+async def test_webhook_rejects_empty_or_invalid_json_without_calling_service(body):
+    secret = "webhook-secret"
+    service = FakeService()
+    app = make_app(enabled=True, service=service)
+
+    response = await request(
+        app,
+        body,
+        headers=signed_headers(secret, body, event_id="evt-invalid-json"),
+    )
+
+    assert response.status_code == 400
+    assert response.json()["code"] == 0
+    assert response.json()["data"] is None
+    assert service.calls == []
+
+
+@pytest.mark.asyncio
+async def test_webhook_valid_request_calls_service_and_returns_legacy_envelope():
+    secret = "webhook-secret"
+    body = json.dumps({"event_id": "evt-valid", "order_id": "order-001"}).encode()
+    service = FakeService(SyncResult(success=True, processed_count=1))
+    app = make_app(enabled=True, service=service)
+
+    response = await request(
+        app,
+        body,
+        headers=signed_headers(secret, body, event_id="evt-valid"),
+    )
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "code": 1,
+        "msg": "success",
+        "data": {
+            "success": True,
+            "processed_count": 1,
+            "failed_count": 0,
+        },
+    }
+    assert service.calls[0][1] == body
+    assert service.calls[0][0]["x-event-id"] == "evt-valid"
+    assert service.calls[0][0]["x-laike-signature"] == signed_headers(
+        secret,
+        body,
+        event_id="evt-valid",
+    )["X-Laike-Signature"]
+
+
+@pytest.mark.asyncio
+async def test_webhook_persists_before_enqueue_and_does_not_process_inline(
+    tmp_path,
+):
+    database_url = f"sqlite+pysqlite:///{tmp_path / 'laike-webhook.db'}"
+    engine = create_engine(database_url)
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+    enqueued: list[tuple[str, dict]] = []
+
+    async def enqueue(event_id: str, payload: dict):
+        with session_factory() as session:
+            event = session.scalar(
+                select(LaikeWebhookEvent).where(
+                    LaikeWebhookEvent.event_id == event_id
+                )
+            )
+            assert event is not None
+            assert event.status == "processing"
+        enqueued.append((event_id, payload))
+
+    body = b'{"event_id":"evt-persist-first","order_id":"order-001"}'
+    secret = "webhook-secret"
+    client = FakeLaikeClient()
+    settings = Settings(
+        app_env="test",
+        database_url=database_url,
+        php_baseline_url=None,
+        laike_webhook_enabled=True,
+        laike_webhook_secret=secret,
+    )
+    app = create_app(
+        settings,
+        laike_client=client,
+        laike_session_factory=session_factory,
+        laike_enqueuer=enqueue,
+    )
+
+    response = await request(
+        app,
+        body,
+        headers=signed_headers(secret, body, event_id="evt-persist-first"),
+    )
+
+    assert response.status_code == 200
+    assert enqueued == [
+        (
+            "evt-persist-first",
+            {"event_id": "evt-persist-first", "order_id": "order-001"},
+        )
+    ]
+    with session_factory() as session:
+        event = session.scalar(
+            select(LaikeWebhookEvent).where(
+                LaikeWebhookEvent.event_id == "evt-persist-first"
+            )
+        )
+        assert event is not None
+        assert event.status == "queued"
+
+
+@pytest.mark.asyncio
+async def test_invalid_hmac_does_not_persist_an_event(tmp_path):
+    database_url = f"sqlite+pysqlite:///{tmp_path / 'laike-invalid.db'}"
+    engine = create_engine(database_url)
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+    secret = "webhook-secret"
+    body = b'{"event_id":"evt-invalid-hmac","order_id":"order-001"}'
+    app = create_app(
+        Settings(
+            app_env="test",
+            database_url=database_url,
+            php_baseline_url=None,
+            laike_webhook_enabled=True,
+            laike_webhook_secret=secret,
+        ),
+        laike_client=HmacLaikeClient(secret),
+        laike_session_factory=session_factory,
+    )
+
+    response = await request(
+        app,
+        body,
+        headers={
+            "X-Event-ID": "evt-invalid-hmac",
+            "X-Laike-Signature": "sha256=wrong",
+        },
+    )
+
+    assert response.status_code == 400
+    with session_factory() as session:
+        assert session.scalars(select(LaikeWebhookEvent)).all() == []

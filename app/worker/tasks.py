@@ -1,7 +1,9 @@
-from app.worker.celery_app import create_celery_app
-
-
-celery_app = create_celery_app()
+from app.worker.laike_tasks import (
+    celery_app,
+    process_laike_webhook,
+    reconcile_laike_account,
+    retry_failed_laike_events,
+)
 
 
 @celery_app.task
