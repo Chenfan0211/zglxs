@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.db.models.laike import (
@@ -30,15 +31,25 @@ class LaikeRepository:
         headers_json: dict[str, str],
         verified: bool,
     ) -> LaikeWebhookEvent:
-        event = LaikeWebhookEvent(
-            event_id=event_id,
-            payload_json=payload_json,
-            headers_json=headers_json,
-            verified=verified,
-        )
-        self.session.add(event)
-        self.session.flush()
-        return event
+        existing = self.get_webhook_event(event_id)
+        if existing is not None:
+            return existing
+        try:
+            with self.session.begin_nested():
+                event = LaikeWebhookEvent(
+                    event_id=event_id,
+                    payload_json=payload_json,
+                    headers_json=headers_json,
+                    verified=verified,
+                )
+                self.session.add(event)
+                self.session.flush()
+            return event
+        except IntegrityError:
+            existing = self.get_webhook_event(event_id)
+            if existing is None:
+                raise
+            return existing
 
     def update_webhook_event(
         self,
@@ -67,13 +78,25 @@ class LaikeRepository:
             )
         )
         if order is None:
-            order = LaikeOrder(
-                provider_order_id=provider_order_id,
-                payload_json=payload_json,
-                status=status,
-                created_at=created_at,
-            )
-            self.session.add(order)
+            try:
+                with self.session.begin_nested():
+                    order = LaikeOrder(
+                        provider_order_id=provider_order_id,
+                        payload_json=payload_json,
+                        status=status,
+                        created_at=created_at,
+                    )
+                    self.session.add(order)
+                    self.session.flush()
+                return order
+            except IntegrityError:
+                order = self.session.scalar(
+                    select(LaikeOrder).where(
+                        LaikeOrder.provider_order_id == provider_order_id
+                    )
+                )
+                if order is None:
+                    raise
         else:
             order.payload_json = payload_json
             order.status = status
@@ -89,8 +112,16 @@ class LaikeRepository:
     def advance_cursor(self, account_id: str, cursor: str | None) -> LaikeSyncCursor:
         record = self.get_cursor(account_id)
         if record is None:
-            record = LaikeSyncCursor(account_id=account_id, cursor=cursor)
-            self.session.add(record)
+            try:
+                with self.session.begin_nested():
+                    record = LaikeSyncCursor(account_id=account_id, cursor=cursor)
+                    self.session.add(record)
+                    self.session.flush()
+                return record
+            except IntegrityError:
+                record = self.get_cursor(account_id)
+                if record is None:
+                    raise
         else:
             record.cursor = cursor
             record.updated_at = datetime.now(timezone.utc)

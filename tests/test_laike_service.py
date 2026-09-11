@@ -10,8 +10,10 @@ from app.db.models.base import Base
 from app.db.models.laike import (
     LaikeOrder,
     LaikeSyncCursor,
+    LaikeSyncRun,
     LaikeWebhookEvent,
 )
+from app.laike.repositories import LaikeRepository
 from app.laike.contracts import LaikePage, WebhookVerification
 from app.laike.service import LaikeSyncService
 
@@ -19,7 +21,7 @@ from app.laike.service import LaikeSyncService
 class FakeLaikeClient:
     def __init__(
         self,
-        pages: list[LaikePage] | None = None,
+        pages: list[LaikePage | Exception] | None = None,
         fetch_error: Exception | None = None,
     ) -> None:
         self.pages = pages or []
@@ -45,7 +47,10 @@ class FakeLaikeClient:
         self.fetch_calls.append((account_id, cursor))
         if self.fetch_error:
             raise self.fetch_error
-        return self.pages.pop(0)
+        page = self.pages.pop(0)
+        if isinstance(page, Exception):
+            raise page
+        return page
 
 
 @pytest.fixture
@@ -108,6 +113,45 @@ async def test_receive_webhook_duplicate_event_is_idempotent(
     assert second.processed_count == 0
     with session_factory() as session:
         assert session.scalars(select(LaikeWebhookEvent)).all().__len__() == 1
+
+
+@pytest.mark.asyncio
+async def test_receive_webhook_retries_received_event_after_enqueue_failure(
+    session_factory,
+    client,
+):
+    attempts = 0
+
+    async def enqueue(event_id, payload):
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise RuntimeError("queue unavailable")
+
+    service = LaikeSyncService(
+        session_factory=session_factory,
+        client=client,
+        settings=object(),
+        enqueuer=enqueue,
+    )
+    raw_body = b'{"event_id":"evt-retry","order_id":"order-001"}'
+
+    first = await service.receive_webhook({"X-Event-ID": "evt-retry"}, raw_body)
+    second = await service.receive_webhook({"X-Event-ID": "evt-retry"}, raw_body)
+
+    assert first.success is False
+    assert first.failed_count == 1
+    assert second.success is True
+    assert second.processed_count == 1
+    assert attempts == 2
+    with session_factory() as session:
+        event = session.scalar(
+            select(LaikeWebhookEvent).where(
+                LaikeWebhookEvent.event_id == "evt-retry"
+            )
+        )
+        assert event.status == "queued"
+        assert event.processed_at is not None
 
 
 @pytest.mark.asyncio
@@ -183,6 +227,9 @@ async def test_reconcile_isolates_one_failed_order_from_other_items(
                 LaikeSyncCursor.account_id == "account-001"
             )
         ) is None
+        run = session.scalar(select(LaikeSyncRun))
+        assert "exception_type=ValueError" in run.error_message
+        assert "paid" not in run.error_message
 
 
 @pytest.mark.asyncio
@@ -204,6 +251,97 @@ async def test_reconcile_does_not_advance_cursor_when_fetch_fails(
                 LaikeSyncCursor.account_id == "account-001"
             )
         ) is None
+
+
+@pytest.mark.asyncio
+async def test_reconcile_does_not_advance_old_cursor_when_second_page_fetch_fails(
+    session_factory,
+    client,
+    service,
+):
+    with session_factory() as session:
+        session.add(LaikeSyncCursor(account_id="account-001", cursor="old-cursor"))
+        session.commit()
+    client.pages = [
+        LaikePage(
+            items=[{"order_id": "order-001", "status": "paid"}],
+            next_cursor="page-2",
+            has_more=True,
+        ),
+        RuntimeError("second page unavailable"),
+    ]
+
+    result = await service.reconcile_account("account-001")
+
+    assert result.success is False
+    assert result.processed_count == 1
+    with session_factory() as session:
+        assert session.scalar(
+            select(LaikeSyncCursor.cursor).where(
+                LaikeSyncCursor.account_id == "account-001"
+            )
+        ) == "old-cursor"
+
+
+@pytest.mark.parametrize(
+    ("page", "initial_cursor"),
+    [
+        (LaikePage(items=[], has_more=True, next_cursor=None), None),
+        (LaikePage(items=[], has_more=True, next_cursor="same-cursor"), "same-cursor"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_reconcile_rejects_missing_or_repeated_next_cursor(
+    session_factory,
+    client,
+    service,
+    page,
+    initial_cursor,
+):
+    if initial_cursor is not None:
+        with session_factory() as session:
+            session.add(
+                LaikeSyncCursor(
+                    account_id="account-001",
+                    cursor=initial_cursor,
+                )
+            )
+            session.commit()
+    client.pages = [page]
+
+    result = await service.reconcile_account("account-001")
+
+    assert result.success is False
+    assert result.failed_count == 0
+    with session_factory() as session:
+        run = session.scalar(select(LaikeSyncRun))
+        assert run.error_message is not None
+        assert "cursor" in run.error_message.lower()
+
+
+def test_repository_duplicate_event_insert_returns_existing_event(session_factory):
+    with session_factory() as session:
+        repository = LaikeRepository(session)
+        first = repository.insert_webhook_event(
+            "evt-concurrent",
+            {"event_id": "evt-concurrent"},
+            {},
+            True,
+        )
+        session.commit()
+
+    with session_factory() as session:
+        repository = LaikeRepository(session)
+        second = repository.insert_webhook_event(
+            "evt-concurrent",
+            {"event_id": "evt-concurrent", "new": True},
+            {},
+            True,
+        )
+        session.commit()
+
+    assert second.id == first.id
+    assert second.payload_json == {"event_id": "evt-concurrent"}
 
 
 @pytest.mark.asyncio

@@ -94,3 +94,63 @@ Task 1 文件 `app/laike/contracts.py`、`app/laike/normalizer.py` 未修改；�
 ## 疑虑与边界
 
 Task 1 未提供具体 `LaikeClient` 协议，因此服务约定优先调用 `fetch_orders`，缺失时回退到 `list_orders`；验证优先调用 `verify_webhook`。这些适配没有猜测来客字段。事件缺少显式 ID 时使用 header、payload 中已确认的 `event_id`，最后使用原始 body 的 SHA-256 作为稳定幂等键。真实契约接入时，如方法名或事件 ID 传递方式不同，只需调整客户端适配层。
+
+## 审查修复记录
+
+审查未通过后，按 TDD 先新增回归测试，再修改实现。
+
+### RED
+
+新增测试覆盖：
+
+- 入队失败后 event 保持可重试状态，下一次重复 webhook 可再次入队；
+- 两页 reconcile 在第二页 fetch 失败时保留原游标；
+- `has_more=True` 时拒绝缺失或未变化的 next cursor；
+- Repository 唯一键冲突通过 nested transaction 回读已有事件；
+- SQLite 执行 Alembic upgrade/downgrade 并检查四张同步表；
+- 订单失败摘要写入 sync run 且不包含 payload 值。
+
+初次运行新增回归测试得到 `6 failed, 6 passed`，失败分别对应原有的入队状态窗口、逐页推进游标、分页校验缺失、唯一键冲突未处理和迁移文件缺失。迁移测试最初还暴露仓库空的 `alembic/__init__.py` 遮蔽外部 Alembic 包的问题，随后删除该空包标记并改为真实 SQLite migration 测试。
+
+### GREEN
+
+实现修复：
+
+- webhook 事件只在入队成功后标记 `queued`；入队异常返回失败，事件保留 `received`，后续重复到达会重试；
+- reconcile 暂存最终游标，只有所有分页 fetch 和所有订单处理成功后统一推进；
+- event/order/cursor 的插入使用 `Session.begin_nested()`，捕获 `IntegrityError` 后重新读取唯一键对应记录；
+- `has_more=True` 时要求 next cursor 非空且不同于当前 cursor；
+- 订单失败记录 `exception_type`、失败数量和经过 hash 的 order reference，不写原始 payload 或敏感值；
+- `alembic/env.py` 导入 `app.db.models` 并绑定 `Base.metadata`；
+- 新增 `alembic/versions/0002_laike_sync.py`，可升级/回滚四张同步表；
+- 删除空的 `alembic/__init__.py`，避免遮蔽第三方 Alembic 包；补充 `alembic.ini` 的 `path_separator = os`。
+
+验证输出：
+
+```text
+python -m pytest tests/test_laike_service.py tests/test_laike_migrations.py -q
+.............                                                            [100%]
+13 passed in 0.56s
+
+python -m pytest -q
+........................................................................ [ 97%]
+..                                                                       [100%]
+74 passed in 1.03s
+```
+
+`git diff --check` 通过。
+
+### 审查后自审
+
+- [x] 入队失败不会把 event 永久视为已处理。
+- [x] 入队成功后才写入 `queued` 和 `processed_at`。
+- [x] 多页同步仅在整次同步成功后推进 cursor。
+- [x] fetch 失败、订单失败、非法分页游标均不推进 cursor。
+- [x] 唯一键并发冲突在 Repository 层回读，不计为业务失败。
+- [x] 订单失败可定位但不记录原始 payload。
+- [x] Alembic upgrade/downgrade 已在 SQLite 上运行验证。
+- [x] 未修改 Task 1 契约/normalizer，未解密 PHP，未使用凭据或 HAR。
+
+### 审查后疑虑
+
+真实生产环境下，多个 worker 同时处理同一 `received` 事件时仍应由队列消费者以 event ID 做幂等；本次 brief 未提供队列 claim/lease 契约，因此没有新增猜测字段或锁协议。Repository 已覆盖唯一键竞态的数据库层幂等。
