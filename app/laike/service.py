@@ -11,7 +11,7 @@ from typing import Any
 from app.db.session import UnitOfWork
 from app.db.models.laike import LaikeSyncRun
 from app.laike.contracts import LaikePage, SyncResult, WebhookVerification
-from app.laike.normalizer import normalize_order
+from app.laike.normalizer import NormalizationError, normalize_order
 
 from .repositories import LaikeRepository
 
@@ -22,6 +22,9 @@ async def _maybe_await(value: Any) -> Any:
     return value
 
 
+_DEFAULT_NORMALIZER = object()
+
+
 class LaikeSyncService:
     def __init__(
         self,
@@ -29,11 +32,15 @@ class LaikeSyncService:
         client,
         settings,
         enqueuer: Callable[..., Any] | None = None,
+        normalizer: Any = _DEFAULT_NORMALIZER,
     ) -> None:
         self.session_factory = session_factory
         self.client = client
         self.settings = settings
         self.enqueuer = enqueuer
+        self.normalizer = (
+            normalize_order if normalizer is _DEFAULT_NORMALIZER else normalizer
+        )
         self.webhook_claim_timeout_seconds = float(
             settings.laike_webhook_claim_timeout_seconds
         )
@@ -48,7 +55,13 @@ class LaikeSyncService:
             return SyncResult(success=False, failed_count=1)
 
         payload = json.loads(raw_body)
-        event_id = self._event_id(headers, payload, raw_body)
+        event_id = self._event_id(
+            headers,
+            payload,
+            raw_body,
+            event_id=verification.event_id,
+            legacy_compatibility=verification.legacy_compatibility,
+        )
         now = datetime.now(timezone.utc)
         stale_before = now - timedelta(seconds=self.webhook_claim_timeout_seconds)
         with UnitOfWork(self.session_factory) as unit:
@@ -227,7 +240,14 @@ class LaikeSyncService:
         failure_summaries: list[str] = []
         for payload in page.items:
             try:
-                order = normalize_order(payload)
+                if self.normalizer is None:
+                    raise NormalizationError(
+                        "laike order normalizer is not configured"
+                    )
+                if hasattr(self.normalizer, "normalize"):
+                    order = self.normalizer.normalize(payload)
+                else:
+                    order = self.normalizer(payload)
                 if not order.order_id:
                     raise ValueError("normalized order has no order_id")
                 with UnitOfWork(self.session_factory) as unit:
@@ -279,18 +299,24 @@ class LaikeSyncService:
 
     @staticmethod
     def _event_id(
-        headers: Mapping[str, str],
-        payload: Mapping[str, Any],
-        raw_body: bytes,
+        headers: Mapping[str, str] | None = None,
+        payload: Mapping[str, Any] | None = None,
+        raw_body: bytes = b"",
+        *,
+        event_id: str | None = None,
+        legacy_compatibility: bool = False,
     ) -> str:
-        # Compatibility placeholders only; do not treat these as the real
-        # provider contract until HAR or official documentation confirms it.
-        normalized_headers = {
-            key.lower().replace("_", "-"): value for key, value in headers.items()
-        }
-        return (
-            normalized_headers.get("x-event-id")
-            or normalized_headers.get("event-id")
-            or str(payload.get("event_id") or "")
-            or hashlib.sha256(raw_body).hexdigest()
-        )
+        if isinstance(event_id, str) and event_id.strip():
+            return event_id.strip()
+        if legacy_compatibility:
+            normalized_headers = {
+                key.lower().replace("_", "-"): value
+                for key, value in (headers or {}).items()
+            }
+            return (
+                normalized_headers.get("x-event-id")
+                or normalized_headers.get("event-id")
+                or str((payload or {}).get("event_id") or "")
+                or hashlib.sha256(raw_body).hexdigest()
+            )
+        return hashlib.sha256(raw_body).hexdigest()

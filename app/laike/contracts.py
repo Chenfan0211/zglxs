@@ -70,11 +70,21 @@ class WebhookVerification(BaseModel):
     def verified(self) -> bool:
         return self.valid
 
+    @property
+    def legacy_compatibility(self) -> bool:
+        return self._legacy_shape
+
     def model_dump(self, *args: Any, **kwargs: Any) -> dict[str, Any]:
         result = super().model_dump(*args, **kwargs)
         if self._legacy_shape:
             return {"verified": self.valid, "reason": self.reason}
         return result
+
+    def __await__(self):
+        async def return_self() -> WebhookVerification:
+            return self
+
+        return return_self().__await__()
 
 
 class NormalizedOrder(BaseModel):

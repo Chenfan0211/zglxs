@@ -13,7 +13,7 @@ from app.db.session import Database
 from app.integrations.php_baseline import PhpBaselineProxy
 from app.laike.client import HmacLaikeClient, LaikeClient
 from app.laike.service import LaikeSyncService
-from app.laike.webhook import create_laike_webhook_router
+from app.laike.webhook import WebhookVerifier, create_laike_webhook_router
 from app.worker.celery_app import create_celery_app
 
 
@@ -27,6 +27,7 @@ def create_app(
     laike_task_app: Celery | None = None,
     laike_enqueuer_factory: Callable[[Celery], Callable[..., Any]] | None = None,
     laike_service_factory: Callable[[], LaikeSyncService] | None = None,
+    laike_normalizer: Callable[..., Any] | None = None,
 ) -> FastAPI:
     resolved_settings = settings or Settings.from_env()
     database = Database(resolved_settings.database_url)
@@ -39,8 +40,14 @@ def create_app(
         if resolved_settings.php_baseline_url
         else None
     )
+    resolved_webhook_verifier = WebhookVerifier(
+        resolved_settings.laike_webhook_secret,
+        signature_header=resolved_settings.laike_webhook_signature_header,
+        event_id_header=resolved_settings.laike_webhook_event_id_header,
+    )
     resolved_laike_client = laike_client or HmacLaikeClient(
-        resolved_settings.laike_webhook_secret
+        resolved_settings.laike_webhook_secret,
+        verifier=resolved_webhook_verifier,
     )
     resolved_session_factory = laike_session_factory or database.session
     resolved_laike_task_app = laike_task_app or create_celery_app(
@@ -67,6 +74,7 @@ def create_app(
             client=resolved_laike_client,
             settings=resolved_settings,
             enqueuer=resolved_laike_enqueuer,
+            normalizer=laike_normalizer,
         )
     )
 

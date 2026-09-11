@@ -137,14 +137,35 @@ class HmacLaikeClient:
         "signature",
     )
 
-    def __init__(self, secret: str | None) -> None:
+    def __init__(
+        self,
+        secret: str | None,
+        signature_header: str | None = None,
+        event_id_header: str | None = None,
+        digest: str = "sha256",
+        prefix: str = "sha256=",
+        verifier: WebhookVerifier | None = None,
+    ) -> None:
         self.secret = secret
+        self.verifier = verifier
+        if self.verifier is None and (
+            signature_header is not None or event_id_header is not None
+        ):
+            self.verifier = WebhookVerifier(
+                secret,
+                signature_header=signature_header or "X-Laike-Signature",
+                event_id_header=event_id_header or "X-Laike-Event-Id",
+                digest=digest,
+                prefix=prefix,
+            )
 
     def verify_webhook(
         self,
         headers: Mapping[str, str],
         raw_body: bytes,
     ) -> WebhookVerification:
+        if self.verifier is not None:
+            return self.verifier.verify(headers, raw_body)
         if not self.secret:
             return WebhookVerification(
                 verified=False,
@@ -182,7 +203,7 @@ class HmacLaikeClient:
             )
         return WebhookVerification(verified=True)
 
-    def fetch_orders(
+    async def fetch_orders(
         self,
         account_id: str,
         cursor: str | None = None,

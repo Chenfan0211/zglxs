@@ -91,6 +91,6 @@ def normalize_order(
     return NormalizedOrder(
         order_id=payload.get("order_id"),
         status=payload.get("status"),
-        original_created_at=payload.get("created_at"),
-        raw_payload=dict(payload),
+        created_at=payload.get("created_at"),
+        payload_json=dict(payload),
     )
