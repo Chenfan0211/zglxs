@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "fallback_enabled_by_default": false,
+  "migrated_routes": [],
+  "discovered_routes": [],
+  "notes": [
+    "真实业务接口必须先完成 PHP/Python 契约对比后才能加入 migrated_routes。",
+    "PHP 基线回退由 PHP_BASELINE_URL 显式开启。"
+  ]
+}
