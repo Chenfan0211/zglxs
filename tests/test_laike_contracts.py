@@ -30,7 +30,7 @@ def test_laike_settings_are_disabled_and_have_safe_defaults(monkeypatch):
     assert settings.laike_app_id is None
     assert settings.laike_app_secret is None
     assert settings.laike_access_token is None
-    assert settings.laike_max_retries == 3
+    assert settings.laike_max_retries == 5
     assert settings.laike_webhook_claim_timeout_seconds == 300
 
 
