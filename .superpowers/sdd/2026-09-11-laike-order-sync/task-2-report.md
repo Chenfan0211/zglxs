@@ -154,3 +154,60 @@ python -m pytest -q
 ### 审查后疑虑
 
 真实生产环境下，多个 worker 同时处理同一 `received` 事件时仍应由队列消费者以 event ID 做幂等；本次 brief 未提供队列 claim/lease 契约，因此没有新增猜测字段或锁协议。Repository 已覆盖唯一键竞态的数据库层幂等。
+
+## 复审 Important 修复报告
+
+### TDD RED
+
+针对本轮四项复审意见，先新增回归测试：
+
+- 两个独立 `LaikeSyncService` 共享 SQLite session factory 处理同一 webhook，第二个请求不得调用 enqueuer；
+- `A -> B -> A` 的历史游标环路必须停止，并且只发生两次 fetch；
+- 最终页 `has_more=False`、`next_cursor=None` 时保留已有旧游标；
+- 使用默认 `expire_on_commit=True` 的 session factory 时，enqueue 仍使用事务内复制的普通值。
+
+运行：
+
+```text
+python -m pytest tests/test_laike_service.py -q
+...FF....FF....                                                          [100%]
+4 failed, 11 passed
+```
+
+失败准确暴露了四个问题：第二请求重复 enqueue、commit 后 ORM 属性访问失败、最终页清空旧游标、历史游标环路继续 fetch。
+
+### TDD GREEN
+
+- `LaikeRepository.claim_webhook_event` 使用 `UPDATE ... WHERE event_id=? AND status='received'` 的条件更新实现原子 claim，并新增 `processing -> received` 释放和 `processing -> queued` 完成状态边界。只有 claim 成功者调用 enqueuer，queued/processing 请求返回幂等成功。
+- webhook 在 UoW 内先完成 insert/claim，并复制 `event_id` 与 `payload_json`；离开 UoW 后不再读取 ORM 对象。enqueue 失败会释放为 `received`，因此可重试。
+- reconcile 维护本次运行的 `seen_cursors`，next cursor 命中历史集合时以安全摘要 `pagination cursor cycle` 失败退出。
+- 最终页无 `next_cursor` 时保留当前 cursor；仅当最终 cursor 非空且相对初始值变化、并且所有页面和订单均成功时推进。
+
+### 验证
+
+```text
+python -m pytest tests/test_laike_service.py -q
+...............                                                          [100%]
+15 passed in 0.40s
+
+python -m pytest -q
+........................................................................ [ 92%]
+......                                                                   [100%]
+78 passed in 1.12s
+```
+
+`git diff --check` 通过。
+
+### 本轮自审
+
+- [x] 同一事件只有原子 claim 成功者 enqueue。
+- [x] queued 或 processing 事件不会重复 enqueue。
+- [x] enqueue 失败回到 received，可由下一次 webhook 重试。
+- [x] commit 后不访问已过期 ORM 属性。
+- [x] 历史 cursor 环路会失败并停止继续 fetch。
+- [x] 无新 checkpoint 不清空旧 cursor。
+- [x] 未修改 Task 1 文件，未解密 PHP，未使用凭据或 HAR。
+
+### 本轮边界
+
+原子 claim 防止接收端重复 enqueue；真实 Celery 任务消费者仍需在后续 Task 3 以 event ID 实现消费幂等。本轮未引入锁表、猜测字段或额外业务协议。

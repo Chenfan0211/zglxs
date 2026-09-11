@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -64,6 +64,43 @@ class LaikeRepository:
             event.processed_at = processed_at
         self.session.flush()
         return event
+
+    def claim_webhook_event(self, event_id: str) -> bool:
+        result = self.session.execute(
+            update(LaikeWebhookEvent)
+            .where(
+                LaikeWebhookEvent.event_id == event_id,
+                LaikeWebhookEvent.status == "received",
+            )
+            .values(status="processing")
+        )
+        return result.rowcount == 1
+
+    def release_webhook_claim(self, event_id: str) -> bool:
+        result = self.session.execute(
+            update(LaikeWebhookEvent)
+            .where(
+                LaikeWebhookEvent.event_id == event_id,
+                LaikeWebhookEvent.status == "processing",
+            )
+            .values(status="received")
+        )
+        return result.rowcount == 1
+
+    def mark_webhook_queued(
+        self,
+        event_id: str,
+        processed_at: datetime,
+    ) -> bool:
+        result = self.session.execute(
+            update(LaikeWebhookEvent)
+            .where(
+                LaikeWebhookEvent.event_id == event_id,
+                LaikeWebhookEvent.status == "processing",
+            )
+            .values(status="queued", processed_at=processed_at)
+        )
+        return result.rowcount == 1
 
     def upsert_order(
         self,

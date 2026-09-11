@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import asyncio
 
 import pytest
 from sqlalchemy import create_engine, select
@@ -58,6 +59,13 @@ def session_factory():
     engine = create_engine("sqlite+pysqlite:///:memory:")
     Base.metadata.create_all(engine)
     return sessionmaker(bind=engine, expire_on_commit=False)
+
+
+@pytest.fixture
+def default_session_factory():
+    engine = create_engine("sqlite+pysqlite:///:memory:")
+    Base.metadata.create_all(engine)
+    return sessionmaker(bind=engine)
 
 
 @pytest.fixture
@@ -152,6 +160,82 @@ async def test_receive_webhook_retries_received_event_after_enqueue_failure(
         )
         assert event.status == "queued"
         assert event.processed_at is not None
+
+
+@pytest.mark.asyncio
+async def test_concurrent_webhooks_only_the_claiming_service_enqueues(
+    session_factory,
+    client,
+):
+    enqueue_started = asyncio.Event()
+    release_enqueue = asyncio.Event()
+    calls: list[str] = []
+
+    async def first_enqueue(event_id, payload):
+        calls.append(f"first:{event_id}")
+        enqueue_started.set()
+        await release_enqueue.wait()
+
+    async def second_enqueue(event_id, payload):
+        calls.append(f"second:{event_id}")
+
+    first_service = LaikeSyncService(
+        session_factory=session_factory,
+        client=client,
+        settings=object(),
+        enqueuer=first_enqueue,
+    )
+    second_service = LaikeSyncService(
+        session_factory=session_factory,
+        client=client,
+        settings=object(),
+        enqueuer=second_enqueue,
+    )
+    raw_body = b'{"event_id":"evt-claim","order_id":"order-001"}'
+
+    first_task = asyncio.create_task(
+        first_service.receive_webhook({"X-Event-ID": "evt-claim"}, raw_body)
+    )
+    await enqueue_started.wait()
+    second_result = await second_service.receive_webhook(
+        {"X-Event-ID": "evt-claim"},
+        raw_body,
+    )
+    release_enqueue.set()
+    first_result = await first_task
+
+    assert first_result.success is True
+    assert second_result.success is True
+    assert second_result.processed_count == 0
+    assert calls == ["first:evt-claim"]
+
+
+@pytest.mark.asyncio
+async def test_receive_webhook_copies_enqueue_values_before_default_commit_expiry(
+    default_session_factory,
+    client,
+):
+    enqueued: list[tuple[str, dict]] = []
+
+    async def enqueue(event_id, payload):
+        enqueued.append((event_id, payload))
+
+    service = LaikeSyncService(
+        session_factory=default_session_factory,
+        client=client,
+        settings=object(),
+        enqueuer=enqueue,
+    )
+
+    result = await service.receive_webhook(
+        {"X-Event-ID": "evt-expire"},
+        b'{"event_id":"evt-expire","order_id":"order-001"}',
+    )
+
+    assert result.success is True
+    assert enqueued == [
+        ("evt-expire", {"event_id": "evt-expire", "order_id": "order-001"})
+    ]
 
 
 @pytest.mark.asyncio
@@ -281,6 +365,57 @@ async def test_reconcile_does_not_advance_old_cursor_when_second_page_fetch_fail
                 LaikeSyncCursor.account_id == "account-001"
             )
         ) == "old-cursor"
+
+
+@pytest.mark.asyncio
+async def test_reconcile_preserves_old_cursor_when_final_page_has_no_checkpoint(
+    session_factory,
+    client,
+    service,
+):
+    with session_factory() as session:
+        session.add(LaikeSyncCursor(account_id="account-001", cursor="old-cursor"))
+        session.commit()
+    client.pages = [
+        LaikePage(
+            items=[{"order_id": "order-001", "status": "paid"}],
+            next_cursor=None,
+            has_more=False,
+        )
+    ]
+
+    result = await service.reconcile_account("account-001")
+
+    assert result.success is True
+    with session_factory() as session:
+        assert session.scalar(
+            select(LaikeSyncCursor.cursor).where(
+                LaikeSyncCursor.account_id == "account-001"
+            )
+        ) == "old-cursor"
+
+
+@pytest.mark.asyncio
+async def test_reconcile_rejects_historical_cursor_cycle(
+    session_factory,
+    client,
+    service,
+):
+    with session_factory() as session:
+        session.add(LaikeSyncCursor(account_id="account-001", cursor="A"))
+        session.commit()
+    client.pages = [
+        LaikePage(items=[], next_cursor="B", has_more=True),
+        LaikePage(items=[], next_cursor="A", has_more=True),
+    ]
+
+    result = await service.reconcile_account("account-001")
+
+    assert result.success is False
+    assert len(client.fetch_calls) == 2
+    with session_factory() as session:
+        run = session.scalar(select(LaikeSyncRun))
+        assert "cycle" in run.error_message.lower()
 
 
 @pytest.mark.parametrize(

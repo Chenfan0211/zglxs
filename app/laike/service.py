@@ -47,26 +47,31 @@ class LaikeSyncService:
         with UnitOfWork(self.session_factory) as unit:
             repository = LaikeRepository(unit.session)
             event = repository.get_webhook_event(event_id)
-            if event is not None and event.status == "queued":
+            if event is not None and event.status != "received":
                 return SyncResult(success=True)
             event = repository.insert_webhook_event(
                 event_id, payload, dict(headers), verification.verified
             )
+            claimed = repository.claim_webhook_event(event_id)
+            enqueue_event_id = event.event_id
+            enqueue_payload = dict(event.payload_json)
+
+        if not claimed:
+            return SyncResult(success=True)
 
         try:
             if self.enqueuer is not None:
-                await _maybe_await(self.enqueuer(event.event_id, event.payload_json))
+                await _maybe_await(self.enqueuer(enqueue_event_id, enqueue_payload))
         except Exception:
+            with UnitOfWork(self.session_factory) as unit:
+                LaikeRepository(unit.session).release_webhook_claim(event_id)
             return SyncResult(success=False, failed_count=1)
 
         with UnitOfWork(self.session_factory) as unit:
             repository = LaikeRepository(unit.session)
-            event = repository.get_webhook_event(event_id)
-            assert event is not None
-            repository.update_webhook_event(
-                event,
-                status="queued",
-                processed_at=datetime.now(timezone.utc),
+            repository.mark_webhook_queued(
+                event_id,
+                datetime.now(timezone.utc),
             )
         return SyncResult(success=True, processed_count=1)
 
@@ -86,6 +91,8 @@ class LaikeSyncService:
         error_message: str | None = None
         page_success = True
         cursor = self._read_cursor(account_id)
+        initial_cursor = cursor
+        seen_cursors: set[str | None] = {cursor}
         final_cursor: str | None = cursor
         failure_summaries: list[str] = []
 
@@ -103,15 +110,19 @@ class LaikeSyncService:
                 if page_failed:
                     page_success = False
                 if not page.has_more:
-                    final_cursor = page.next_cursor
+                    if page.next_cursor is not None:
+                        final_cursor = page.next_cursor
                     break
-                if not page.next_cursor or page.next_cursor == cursor:
+                if not page.next_cursor:
                     raise ValueError(
                         "pagination cursor must be non-empty and advance"
                     )
+                if page.next_cursor in seen_cursors:
+                    raise ValueError("pagination cursor cycle detected")
+                seen_cursors.add(page.next_cursor)
                 cursor = page.next_cursor
                 final_cursor = cursor
-            if page_success:
+            if page_success and final_cursor is not None and final_cursor != initial_cursor:
                 self._advance_cursor(account_id, final_cursor)
         except Exception as exc:
             page_success = False
@@ -228,6 +239,8 @@ class LaikeSyncService:
 
     @staticmethod
     def _safe_error_text(exc: Exception) -> str:
+        if isinstance(exc, ValueError) and "cycle" in str(exc).lower():
+            return "pagination cursor cycle"
         if isinstance(exc, ValueError) and "cursor" in str(exc).lower():
             return "pagination cursor invalid"
         if isinstance(exc, ValueError):
