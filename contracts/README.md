@@ -15,6 +15,20 @@
 - 错误码、错误文案、认证和权限行为。
 - 写操作影响的数据库表、事务边界和幂等行为。
 
+登记必须通过 `tools.promote_routes`，不能手工修改 `migrated_routes`。证明文件的
+每条路由必须同时包含 `registered=true`、`response_mismatches=[]`、
+`permission_cases_passed=true`、`database_effects_passed=true` 和
+`transaction_rollback_passed=true`，并且路由已经存在于 `discovered_routes`：
+
+```powershell
+python -m tools.promote_routes `
+  --manifest contracts/api-manifest.json `
+  --proof contracts/fixtures/organization/verification.json
+```
+
+任意响应差异、权限差异、数据库副作用差异、事务回滚失败、重复路由或缺少证明
+都会拒绝登记，不会部分修改清单。
+
 第一阶段不登记任何真实业务接口。
 
 ## 来客契约回放门槛
