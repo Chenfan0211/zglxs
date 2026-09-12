@@ -49,6 +49,28 @@ def test_registry_resolves_registered_method_only():
     assert registry.resolve("Demo", "probe", "POST") is None
 
 
+def test_registry_does_not_resolve_a_route_when_its_module_is_disabled():
+    registry = MigrationRegistry(module_enabled=lambda module: False)
+    registry.register("Demo", "probe", ["GET"], python_probe, module="order")
+
+    assert registry.resolve("Demo", "probe", "GET") is None
+    assert registry.routes() == [
+        {
+            "controller": "Demo",
+            "action": "probe",
+            "method": "GET",
+            "module": "order",
+        }
+    ]
+
+
+def test_registry_resolves_a_route_when_its_module_is_enabled():
+    registry = MigrationRegistry(module_enabled=lambda module: module == "order")
+    registry.register("Demo", "probe", ["GET"], python_probe, module="order")
+
+    assert registry.resolve("Demo", "probe", "GET") is python_probe
+
+
 @pytest.mark.asyncio
 async def test_registered_route_is_handled_by_python():
     registry = MigrationRegistry()

@@ -1,0 +1,1330 @@
+[
+  {
+    "path": "/apiv1/common/captcha",
+    "method": "UNKNOWN",
+    "controller": "common",
+    "action": "captcha",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/common/getconfiginfo",
+    "method": "UNKNOWN",
+    "controller": "common",
+    "action": "getconfiginfo",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/common/getupversioninfo",
+    "method": "UNKNOWN",
+    "controller": "common",
+    "action": "getupversioninfo",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/common/getupversionnum",
+    "method": "UNKNOWN",
+    "controller": "common",
+    "action": "getupversionnum",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/common/updateconfiginfo",
+    "method": "UNKNOWN",
+    "controller": "common",
+    "action": "updateconfiginfo",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/center",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "center",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/consoleendwork",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "consoleendwork",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/consolestartwork",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "consolestartwork",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/consoleworklog",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "consoleworklog",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/endwork",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "endwork",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/liveroomanchorlist",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "liveroomanchorlist",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/liveroomconsolelist",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "liveroomconsolelist",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/liveroomrank",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "liveroomrank",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/orderarea",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "orderarea",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/ordermoneyrank",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "ordermoneyrank",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/orderusemoneyrank",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "orderusemoneyrank",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/searchanchor",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "searchanchor",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/searchanchorliveroom",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "searchanchorliveroom",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/searchconsole",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "searchconsole",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/searchcustom",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "searchcustom",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/searchcustomliveroom",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "searchcustomliveroom",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/searchgroup",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "searchgroup",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/searchmaintenance",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "searchmaintenance",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/startwork",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "startwork",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/console/worklog",
+    "method": "UNKNOWN",
+    "controller": "console",
+    "action": "worklog",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/financial/settlementlist",
+    "method": "UNKNOWN",
+    "controller": "financial",
+    "action": "settlementlist",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/financial/statistic",
+    "method": "UNKNOWN",
+    "controller": "financial",
+    "action": "statistic",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/accounts/add",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "accounts/add",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/accounts/del",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "accounts/del",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/accounts/edit",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "accounts/edit",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/accounts/index",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "accounts/index",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/accounts/productadd",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "accounts/productadd",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/accounts/productadd2",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "accounts/productadd2",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/accounts/productdel",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "accounts/productdel",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/accounts/productedit",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "accounts/productedit",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/accounts/productedit2",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "accounts/productedit2",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/accounts/productlist",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "accounts/productlist",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/accounts/productupdateorder",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "accounts/productupdateorder",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customgroupliverooms/add",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customgroupliverooms/add",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customgroupliverooms/del",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customgroupliverooms/del",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customgroupliverooms/edit",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customgroupliverooms/edit",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customgroupliverooms/index",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customgroupliverooms/index",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customgroupliverooms/searchliveroom",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customgroupliverooms/searchliveroom",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicecates/add",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicecates/add",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicecates/del",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicecates/del",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicecates/edit",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicecates/edit",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicecates/index",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicecates/index",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicecates/searchcate",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicecates/searchcate",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicegroupmembers/add",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicegroupmembers/add",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicegroupmembers/changestatus",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicegroupmembers/changestatus",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicegroupmembers/del",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicegroupmembers/del",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicegroupmembers/edit",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicegroupmembers/edit",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicegroupmembers/getworktime",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicegroupmembers/getworktime",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicegroupmembers/index",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicegroupmembers/index",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicegroupmembers/searchmember",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicegroupmembers/searchmember",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicegroupmembers/setworktime",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicegroupmembers/setworktime",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicegroups/add",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicegroups/add",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicegroups/changestatus",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicegroups/changestatus",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicegroups/del",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicegroups/del",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicegroups/edit",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicegroups/edit",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicegroups/index",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicegroups/index",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/customservicegroups/searchgroup",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "customservicegroups/searchgroup",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/departments/add",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "departments/add",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/departments/del",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "departments/del",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/departments/edit",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "departments/edit",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/departments/index",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "departments/index",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/departments/searchdepartment",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "departments/searchdepartment",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/followstatus/add",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "followstatus/add",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/followstatus/changestatus",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "followstatus/changestatus",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/followstatus/del",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "followstatus/del",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/followstatus/edit",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "followstatus/edit",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/followstatus/index",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "followstatus/index",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/getinfo",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "getinfo",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/liveroomconsoles/add",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "liveroomconsoles/add",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/liveroomconsoles/del",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "liveroomconsoles/del",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/liveroomconsoles/edit",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "liveroomconsoles/edit",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/liveroomconsoles/index",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "liveroomconsoles/index",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/liveroomconsoles/searchconsole",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "liveroomconsoles/searchconsole",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/liveroommembers/add",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "liveroommembers/add",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/liveroommembers/del",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "liveroommembers/del",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/liveroommembers/edit",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "liveroommembers/edit",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/liveroommembers/index",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "liveroommembers/index",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/liveroommembers/searchmember",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "liveroommembers/searchmember",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/liverooms/add",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "liverooms/add",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/liverooms/del",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "liverooms/del",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/liverooms/edit",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "liverooms/edit",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/liverooms/index",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "liverooms/index",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/login",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "login",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/logout",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "logout",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/addseat",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/addseat",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/calllog",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/calllog",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/changerenewstatus",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/changerenewstatus",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/createcall",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/createcall",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/delseat",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/delseat",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/delwechat",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/delwechat",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/editseat",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/editseat",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/getconfiginfo",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/getconfiginfo",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/getmobilecheckinfo",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/getmobilecheckinfo",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/getqrcodeinfo",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/getqrcodeinfo",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/getqrcodestatus",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/getqrcodestatus",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/getsmsinfo",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/getsmsinfo",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/getsmstemplete",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/getsmstemplete",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/searchseat",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/searchseat",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/seatlist",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/seatlist",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/sendsms",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/sendsms",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/updateconfiginfo",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/updateconfiginfo",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/updatemobilecheckinfo",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/updatemobilecheckinfo",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/updatesmsinfo",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/updatesmsinfo",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/updatesmstemplete",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/updatesmstemplete",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/updatewechat",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/updatewechat",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/mobiles/wechatlist",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "mobiles/wechatlist",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/notices/changeview",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "notices/changeview",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/notices/index",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "notices/index",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/add",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/add",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/addfollow",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/addfollow",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/batchaddfollow",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/batchaddfollow",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/batchallocation",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/batchallocation",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/batchallocationmaintenance",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/batchallocationmaintenance",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/batchchangeanchor",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/batchchangeanchor",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/batchchangeconsole",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/batchchangeconsole",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/batchchangefollowstatus",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/batchchangefollowstatus",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/changecostinfo",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/changecostinfo",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/claim",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/claim",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/claimcustomlist",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/claimcustomlist",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/claimlog",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/claimlog",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/confirm",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/confirm",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/del",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/del",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/detail",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/detail",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/edit",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/edit",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/followlog",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/followlog",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/operatelog",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/operatelog",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/publicbatchallocation",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/publicbatchallocation",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/refundlist",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/refundlist",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/release",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/release",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/reservationlist",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/reservationlist",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/searchanchor",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/searchanchor",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/searchconsole",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/searchconsole",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/searchcustom",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/searchcustom",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/searchmaintenance",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/searchmaintenance",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/setfollowday",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/setfollowday",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/tradelist",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/tradelist",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/updatefollowstatus",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/updatefollowstatus",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/updatelockflg",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/updatelockflg",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/updatememo",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/updatememo",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/updatetel",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/updatetel",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/order/uselist",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "order/uselist",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/register",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "register",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/resettoken",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "resettoken",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/setsystemupnum",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "setsystemupnum",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/sms/send",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "sms/send",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/staff/add",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "staff/add",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/staff/change",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "staff/change",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/staff/changecustomstatus",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "staff/changecustomstatus",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/staff/del",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "staff/del",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/staff/edit",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "staff/edit",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/staff/getauthinfo",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "staff/getauthinfo",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/staff/index",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "staff/index",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/staff/updateauthinfo",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "staff/updateauthinfo",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/user/changenoticeflg",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "user/changenoticeflg",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/user/changepwd",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "user/changepwd",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/user/login",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "user/login",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/user/logout",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "user/logout",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/user/register",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "user/register",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/usertablecolumns/del",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "usertablecolumns/del",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/usertablecolumns/detail",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "usertablecolumns/detail",
+    "status": "discovered",
+    "source": "frontend"
+  },
+  {
+    "path": "/apiv1/user/usertablecolumns/edit",
+    "method": "UNKNOWN",
+    "controller": "user",
+    "action": "usertablecolumns/edit",
+    "status": "discovered",
+    "source": "frontend"
+  }
+]

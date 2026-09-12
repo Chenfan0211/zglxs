@@ -35,7 +35,9 @@ def create_app(
 ) -> FastAPI:
     resolved_settings = settings or Settings.from_env()
     database = Database(resolved_settings.database_url)
-    resolved_registry = registry or MigrationRegistry()
+    resolved_registry = registry or MigrationRegistry(
+        module_enabled=resolved_settings.formal_migration_enabled
+    )
     resolved_php_proxy = php_proxy or (
         PhpBaselineProxy(
             resolved_settings.php_baseline_url,

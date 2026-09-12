@@ -42,6 +42,26 @@ class Settings(BaseSettings):
         default="DEMO-CAPTCHA",
         validation_alias="DEMO_CAPTCHA_KEY",
     )
+    migration_organization_enabled: bool = Field(
+        default=False,
+        validation_alias="MIGRATION_ORGANIZATION_ENABLED",
+    )
+    migration_live_enabled: bool = Field(
+        default=False,
+        validation_alias="MIGRATION_LIVE_ENABLED",
+    )
+    migration_order_enabled: bool = Field(
+        default=False,
+        validation_alias="MIGRATION_ORDER_ENABLED",
+    )
+    migration_finance_enabled: bool = Field(
+        default=False,
+        validation_alias="MIGRATION_FINANCE_ENABLED",
+    )
+    migration_system_enabled: bool = Field(
+        default=False,
+        validation_alias="MIGRATION_SYSTEM_ENABLED",
+    )
     database_url: str | None = Field(default=None, validation_alias="DATABASE_URL")
     php_baseline_url: str | None = Field(
         default=None,
@@ -138,3 +158,16 @@ class Settings(BaseSettings):
     @classmethod
     def from_env(cls) -> "Settings":
         return cls()
+
+    def formal_migration_enabled(self, module: str) -> bool:
+        flags = {
+            "organization": self.migration_organization_enabled,
+            "live": self.migration_live_enabled,
+            "order": self.migration_order_enabled,
+            "finance": self.migration_finance_enabled,
+            "system": self.migration_system_enabled,
+        }
+        try:
+            return flags[module]
+        except KeyError as exc:
+            raise ValueError(f"unknown migration module: {module}") from exc
