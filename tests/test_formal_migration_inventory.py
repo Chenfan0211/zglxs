@@ -95,6 +95,7 @@ def test_frontend_inventory_preserves_route_shape_without_registering_migration(
     )
     assert staff_index["controller"] == "user"
     assert staff_index["action"] == "staff/index"
+    assert staff_index["module"] == "organization"
     assert staff_index["method"] == "UNKNOWN"
     assert staff_index["status"] == "discovered"
 

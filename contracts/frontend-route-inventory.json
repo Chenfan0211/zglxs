@@ -4,6 +4,7 @@
     "method": "UNKNOWN",
     "controller": "common",
     "action": "captcha",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -12,6 +13,7 @@
     "method": "UNKNOWN",
     "controller": "common",
     "action": "getconfiginfo",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -20,6 +22,7 @@
     "method": "UNKNOWN",
     "controller": "common",
     "action": "getupversioninfo",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -28,6 +31,7 @@
     "method": "UNKNOWN",
     "controller": "common",
     "action": "getupversionnum",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -36,6 +40,7 @@
     "method": "UNKNOWN",
     "controller": "common",
     "action": "updateconfiginfo",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -44,6 +49,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "center",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -52,6 +58,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "consoleendwork",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -60,6 +67,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "consolestartwork",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -68,6 +76,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "consoleworklog",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -76,6 +85,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "endwork",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -84,6 +94,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "liveroomanchorlist",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -92,6 +103,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "liveroomconsolelist",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -100,6 +112,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "liveroomrank",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -108,6 +121,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "orderarea",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -116,6 +130,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "ordermoneyrank",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -124,6 +139,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "orderusemoneyrank",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -132,6 +148,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "searchanchor",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -140,6 +157,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "searchanchorliveroom",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -148,6 +166,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "searchconsole",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -156,6 +175,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "searchcustom",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -164,6 +184,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "searchcustomliveroom",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -172,6 +193,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "searchgroup",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -180,6 +202,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "searchmaintenance",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -188,6 +211,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "startwork",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -196,6 +220,7 @@
     "method": "UNKNOWN",
     "controller": "console",
     "action": "worklog",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -204,6 +229,7 @@
     "method": "UNKNOWN",
     "controller": "financial",
     "action": "settlementlist",
+    "module": "finance",
     "status": "discovered",
     "source": "frontend"
   },
@@ -212,6 +238,7 @@
     "method": "UNKNOWN",
     "controller": "financial",
     "action": "statistic",
+    "module": "finance",
     "status": "discovered",
     "source": "frontend"
   },
@@ -220,6 +247,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "accounts/add",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -228,6 +256,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "accounts/del",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -236,6 +265,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "accounts/edit",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -244,6 +274,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "accounts/index",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -252,6 +283,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "accounts/productadd",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -260,6 +292,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "accounts/productadd2",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -268,6 +301,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "accounts/productdel",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -276,6 +310,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "accounts/productedit",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -284,6 +319,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "accounts/productedit2",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -292,6 +328,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "accounts/productlist",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -300,6 +337,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "accounts/productupdateorder",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -308,6 +346,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customgroupliverooms/add",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -316,6 +355,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customgroupliverooms/del",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -324,6 +364,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customgroupliverooms/edit",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -332,6 +373,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customgroupliverooms/index",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -340,6 +382,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customgroupliverooms/searchliveroom",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -348,6 +391,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicecates/add",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -356,6 +400,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicecates/del",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -364,6 +409,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicecates/edit",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -372,6 +418,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicecates/index",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -380,6 +427,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicecates/searchcate",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -388,6 +436,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicegroupmembers/add",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -396,6 +445,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicegroupmembers/changestatus",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -404,6 +454,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicegroupmembers/del",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -412,6 +463,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicegroupmembers/edit",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -420,6 +472,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicegroupmembers/getworktime",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -428,6 +481,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicegroupmembers/index",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -436,6 +490,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicegroupmembers/searchmember",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -444,6 +499,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicegroupmembers/setworktime",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -452,6 +508,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicegroups/add",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -460,6 +517,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicegroups/changestatus",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -468,6 +526,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicegroups/del",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -476,6 +535,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicegroups/edit",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -484,6 +544,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicegroups/index",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -492,6 +553,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "customservicegroups/searchgroup",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -500,6 +562,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "departments/add",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -508,6 +571,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "departments/del",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -516,6 +580,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "departments/edit",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -524,6 +589,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "departments/index",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -532,6 +598,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "departments/searchdepartment",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -540,6 +607,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "followstatus/add",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -548,6 +616,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "followstatus/changestatus",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -556,6 +625,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "followstatus/del",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -564,6 +634,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "followstatus/edit",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -572,6 +643,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "followstatus/index",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -580,6 +652,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "getinfo",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -588,6 +661,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "liveroomconsoles/add",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -596,6 +670,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "liveroomconsoles/del",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -604,6 +679,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "liveroomconsoles/edit",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -612,6 +688,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "liveroomconsoles/index",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -620,6 +697,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "liveroomconsoles/searchconsole",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -628,6 +706,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "liveroommembers/add",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -636,6 +715,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "liveroommembers/del",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -644,6 +724,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "liveroommembers/edit",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -652,6 +733,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "liveroommembers/index",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -660,6 +742,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "liveroommembers/searchmember",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -668,6 +751,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "liverooms/add",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -676,6 +760,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "liverooms/del",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -684,6 +769,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "liverooms/edit",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -692,6 +778,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "liverooms/index",
+    "module": "live",
     "status": "discovered",
     "source": "frontend"
   },
@@ -700,6 +787,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "login",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -708,6 +796,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "logout",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -716,6 +805,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/addseat",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -724,6 +814,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/calllog",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -732,6 +823,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/changerenewstatus",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -740,6 +832,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/createcall",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -748,6 +841,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/delseat",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -756,6 +850,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/delwechat",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -764,6 +859,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/editseat",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -772,6 +868,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/getconfiginfo",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -780,6 +877,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/getmobilecheckinfo",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -788,6 +886,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/getqrcodeinfo",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -796,6 +895,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/getqrcodestatus",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -804,6 +904,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/getsmsinfo",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -812,6 +913,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/getsmstemplete",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -820,6 +922,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/searchseat",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -828,6 +931,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/seatlist",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -836,6 +940,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/sendsms",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -844,6 +949,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/updateconfiginfo",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -852,6 +958,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/updatemobilecheckinfo",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -860,6 +967,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/updatesmsinfo",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -868,6 +976,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/updatesmstemplete",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -876,6 +985,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/updatewechat",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -884,6 +994,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "mobiles/wechatlist",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -892,6 +1003,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "notices/changeview",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -900,6 +1012,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "notices/index",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -908,6 +1021,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/add",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -916,6 +1030,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/addfollow",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -924,6 +1039,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/batchaddfollow",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -932,6 +1048,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/batchallocation",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -940,6 +1057,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/batchallocationmaintenance",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -948,6 +1066,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/batchchangeanchor",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -956,6 +1075,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/batchchangeconsole",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -964,6 +1084,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/batchchangefollowstatus",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -972,6 +1093,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/changecostinfo",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -980,6 +1102,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/claim",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -988,6 +1111,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/claimcustomlist",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -996,6 +1120,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/claimlog",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1004,6 +1129,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/confirm",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1012,6 +1138,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/del",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1020,6 +1147,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/detail",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1028,6 +1156,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/edit",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1036,6 +1165,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/followlog",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1044,6 +1174,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/operatelog",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1052,6 +1183,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/publicbatchallocation",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1060,6 +1192,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/refundlist",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1068,6 +1201,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/release",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1076,6 +1210,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/reservationlist",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1084,6 +1219,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/searchanchor",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1092,6 +1228,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/searchconsole",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1100,6 +1237,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/searchcustom",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1108,6 +1246,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/searchmaintenance",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1116,6 +1255,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/setfollowday",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1124,6 +1264,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/tradelist",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1132,6 +1273,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/updatefollowstatus",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1140,6 +1282,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/updatelockflg",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1148,6 +1291,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/updatememo",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1156,6 +1300,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/updatetel",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1164,6 +1309,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "order/uselist",
+    "module": "order",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1172,6 +1318,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "register",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1180,6 +1327,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "resettoken",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1188,6 +1336,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "setsystemupnum",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1196,6 +1345,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "sms/send",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1204,6 +1354,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "staff/add",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1212,6 +1363,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "staff/change",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1220,6 +1372,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "staff/changecustomstatus",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1228,6 +1381,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "staff/del",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1236,6 +1390,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "staff/edit",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1244,6 +1399,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "staff/getauthinfo",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1252,6 +1408,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "staff/index",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1260,6 +1417,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "staff/updateauthinfo",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1268,6 +1426,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "user/changenoticeflg",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1276,6 +1435,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "user/changepwd",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1284,6 +1444,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "user/login",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1292,6 +1453,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "user/logout",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1300,6 +1462,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "user/register",
+    "module": "organization",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1308,6 +1471,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "usertablecolumns/del",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1316,6 +1480,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "usertablecolumns/detail",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   },
@@ -1324,6 +1489,7 @@
     "method": "UNKNOWN",
     "controller": "user",
     "action": "usertablecolumns/edit",
+    "module": "system",
     "status": "discovered",
     "source": "frontend"
   }

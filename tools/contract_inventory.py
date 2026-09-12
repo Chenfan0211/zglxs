@@ -16,6 +16,28 @@ _API_ROUTE = re.compile(
     re.IGNORECASE,
 )
 
+_MODULE_PREFIXES = (
+    ("financial/", "finance"),
+    ("console/", "live"),
+    ("collect/", "order"),
+    ("user/order/", "order"),
+    ("user/followstatus/", "order"),
+    ("user/liveroom", "live"),
+    ("user/customgroupliverooms/", "live"),
+    ("user/accounts/", "organization"),
+    ("user/departments/", "organization"),
+    ("user/staff/", "organization"),
+    ("user/customservice", "organization"),
+    ("user/user/", "organization"),
+    ("user/notices/", "system"),
+    ("user/mobiles/", "system"),
+    ("user/sms/", "system"),
+    ("user/usertablecolumns/", "system"),
+    ("user/", "organization"),
+    ("common/", "system"),
+    ("index/", "system"),
+)
+
 
 def extract_frontend_api_routes(
     archive: zipfile.ZipFile,
@@ -61,9 +83,17 @@ def _route_record(path: str) -> dict[str, Any]:
         "method": "UNKNOWN",
         "controller": controller,
         "action": action,
+        "module": _module_for_route(route),
         "status": "discovered",
         "source": "frontend",
     }
+
+
+def _module_for_route(route: str) -> str:
+    for prefix, module in _MODULE_PREFIXES:
+        if route.startswith(prefix):
+            return module
+    raise ValueError(f"unclassified legacy route: {route}")
 
 
 def main() -> int:
