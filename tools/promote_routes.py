@@ -7,11 +7,20 @@ from typing import Any
 
 
 _MODULES = {"organization", "live", "order", "finance", "system"}
+_MODULE_SWITCHES = {
+    "organization": "MIGRATION_ORGANIZATION_ENABLED",
+    "live": "MIGRATION_LIVE_ENABLED",
+    "order": "MIGRATION_ORDER_ENABLED",
+    "finance": "MIGRATION_FINANCE_ENABLED",
+    "system": "MIGRATION_SYSTEM_ENABLED",
+}
 _PROOF_FIELDS = (
     "registered",
     "permission_cases_passed",
+    "error_cases_passed",
     "database_effects_passed",
     "transaction_rollback_passed",
+    "idempotency_passed",
 )
 
 
@@ -34,7 +43,7 @@ def promote_verified_routes(
     promotions: list[dict[str, Any]] = []
     seen: set[tuple[str, str, str]] = set()
     for entry in entries:
-        route = _validate_proof_entry(entry)
+        route = _validate_proof_entry(entry, manifest_path, proof_path)
         key = _route_key(route)
         if key in seen:
             raise PromotionError(f"duplicate proof route: {_display(key)}")
@@ -78,24 +87,57 @@ def _route_index(manifest: dict[str, Any], field: str) -> dict[tuple[str, str, s
     return indexed
 
 
-def _validate_proof_entry(entry: Any) -> dict[str, Any]:
+def _validate_proof_entry(
+    entry: Any,
+    manifest_path: Path,
+    proof_path: Path,
+) -> dict[str, Any]:
     if not isinstance(entry, dict):
         raise PromotionError("proof route must be an object")
     key = _route_key(entry)
     module = entry.get("module")
     if module not in _MODULES:
         raise PromotionError(f"unknown migration module: {module}")
+    expected_switch = _MODULE_SWITCHES[module]
+    if entry.get("module_switch") != expected_switch:
+        raise PromotionError(
+            f"missing or invalid module switch for {_display(key)}: {expected_switch}"
+        )
     if entry.get("response_mismatches") != []:
         raise PromotionError(f"response mismatches for {_display(key)}")
     for field in _PROOF_FIELDS:
         if entry.get(field) is not True:
             raise PromotionError(f"missing safety proof: {field} for {_display(key)}")
+    registered_route = entry.get("registered_route")
+    if not isinstance(registered_route, dict):
+        raise PromotionError(f"registered_route is required for {_display(key)}")
+    if _route_key(registered_route) != key:
+        raise PromotionError(f"registered route mismatch for {_display(key)}")
+    _validate_proof_files(entry.get("proof_files"), manifest_path, proof_path, key)
     return {
         "method": key[0],
         "controller": key[1],
         "action": key[2],
         "module": module,
     }
+
+
+def _validate_proof_files(
+    proof_files: Any,
+    manifest_path: Path,
+    proof_path: Path,
+    key: tuple[str, str, str],
+) -> None:
+    if not isinstance(proof_files, list) or not proof_files:
+        raise PromotionError(f"proof_files are required for {_display(key)}")
+    roots = (Path.cwd(), manifest_path.parent, proof_path.parent)
+    for value in proof_files:
+        if not isinstance(value, str) or not value.strip():
+            raise PromotionError(f"invalid proof file for {_display(key)}")
+        path = Path(value)
+        candidates = [path] if path.is_absolute() else [root / path for root in roots]
+        if not any(candidate.is_file() and candidate.stat().st_size > 0 for candidate in candidates):
+            raise PromotionError(f"proof file does not exist: {value}")
 
 
 def _route_key(route: dict[str, Any]) -> tuple[str, str, str]:

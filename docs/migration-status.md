@@ -9,6 +9,10 @@
   `contracts/frontend-route-inventory.json`；接口方法仍标记为 `UNKNOWN`，未注册迁移。
 - `life.localhost.com` 前端静态包安全提取与 `/apiv1` 地址替换工具。
 - Nginx、Systemd、发布和回滚模板。
+- 正式业务契约夹具脚手架，默认创建 organization、order、finance 三套空证据目录，
+  不写入业务数据，也不会自动提升路由。
+- 目标站点静态前端与本地清单的差异记录在
+  `contracts/target-site-route-delta.json`；该记录仍属于 discovered-only 证据。
 
 ## 当前阻塞
 
@@ -21,6 +25,7 @@
 - 安全模式默认值为 `LAIKE_SYNC_MODE=observe`、`LAIKE_WEBHOOK_ENABLED=false`、
   `LAIKE_RECONCILE_ENABLED=false`、`LAIKE_WRITE_ENABLED=false`。
 - 在 PHP/Python 回放和数据库副作用比较全部通过前，migrated_routes 保持为空。
+- `tools.promote_routes` 现在还要求错误、幂等、注册路由、模块开关和证明文件全部通过。
 - 分页单条失败时，已成功订单会保留而游标不推进；后续重试可重放整页，依靠订单唯一键幂等更新实现 at-least-once 语义。
 
 ## 下一步

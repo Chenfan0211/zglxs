@@ -1,0 +1,29 @@
+{
+  "source": "http://111.230.104.153:8090/static/js/compiled-bundle",
+  "method_evidence": "静态前端调用均为 POST；运行时契约仍需 HAR/PHP 回放确认",
+  "remote_only": [
+    "user/blacklog/index",
+    "user/blacktel/index",
+    "user/blacktel/edit",
+    "user/blacktel/del",
+    "user/blacktel/batchadd"
+  ],
+  "unconfirmed_plan_route": [
+    "user/blacktel/add"
+  ],
+  "local_only": [
+    "user/accounts/productedit",
+    "user/getinfo",
+    "user/login",
+    "user/logout",
+    "user/register",
+    "user/resettoken",
+    "user/setsystemupnum"
+  ],
+  "promotion_status": "discovered_only",
+  "notes": [
+    "静态资源不能证明响应字段、权限、数据库副作用或事务行为。",
+    "本记录不包含登录凭据、Token、Cookie 或业务数据。",
+    "remote_only 和 unconfirmed_plan_route 都必须取得运行时证据后才能补入正式契约。"
+  ]
+}
