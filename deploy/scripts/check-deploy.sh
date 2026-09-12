@@ -4,6 +4,14 @@ set -euo pipefail
 public_url="${1:-http://127.0.0.1:18084}"
 api_url="${2:-http://127.0.0.1:18083}"
 base="/srv/douyin-order-python"
+env_file="$base/shared/env/api.env"
+
+if [[ -f "$env_file" ]]; then
+  set -a
+  # shellcheck disable=SC1090
+  . "$env_file"
+  set +a
+fi
 
 test -L "$base/current"
 test -d "$base/current/frontend"

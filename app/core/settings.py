@@ -22,6 +22,26 @@ class Settings(BaseSettings):
         default="development",
         validation_alias="ENVIRONMENT",
     )
+    demo_login_enabled: bool = Field(
+        default=False,
+        validation_alias="DEMO_LOGIN_ENABLED",
+    )
+    demo_login_username: str | None = Field(
+        default=None,
+        validation_alias="DEMO_LOGIN_USERNAME",
+    )
+    demo_login_password: str | None = Field(
+        default=None,
+        validation_alias="DEMO_LOGIN_PASSWORD",
+    )
+    demo_captcha_code: str = Field(
+        default="1111",
+        validation_alias="DEMO_CAPTCHA_CODE",
+    )
+    demo_captcha_key: str = Field(
+        default="DEMO-CAPTCHA",
+        validation_alias="DEMO_CAPTCHA_KEY",
+    )
     database_url: str | None = Field(default=None, validation_alias="DATABASE_URL")
     php_baseline_url: str | None = Field(
         default=None,
@@ -104,6 +124,8 @@ class Settings(BaseSettings):
         "laike_app_secret",
         "laike_access_token",
         "laike_webhook_secret",
+        "demo_login_username",
+        "demo_login_password",
         mode="before",
     )
     @classmethod

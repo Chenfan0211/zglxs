@@ -28,6 +28,14 @@ def test_nginx_and_systemd_artifacts_match_test_deployment_ports():
         assert "WorkingDirectory=/srv/douyin-order-python/current" in text
         assert "Restart=always" in text
 
+    scheduler = (
+        ROOT / "deploy/systemd/douyin-order-scheduler.service"
+    ).read_text(encoding="utf-8")
+    assert (
+        "--schedule=/srv/douyin-order-python/shared/celerybeat-schedule"
+        in scheduler
+    )
+
 
 def test_release_scripts_require_a_release_and_support_rollback():
     publish = (ROOT / "deploy/scripts/publish.sh").read_text(encoding="utf-8")
@@ -50,3 +58,13 @@ def test_deployment_check_script_probes_frontend_api_and_internal_endpoints():
     assert "/internal/health/live" in check
     assert "/internal/migration/status" in check
     assert "curl" in check
+
+
+def test_deployment_check_loads_shared_environment_before_safety_probe():
+    check = (ROOT / "deploy/scripts/check-deploy.sh").read_text(
+        encoding="utf-8"
+    )
+
+    assert 'env_file="$base/shared/env/api.env"' in check
+    assert 'source "$env_file"' in check or '. "$env_file"' in check
+    assert "set -a" in check

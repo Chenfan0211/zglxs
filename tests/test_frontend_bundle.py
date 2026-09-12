@@ -18,6 +18,10 @@ def test_prepare_frontend_extracts_life_assets_and_uses_relative_api(tmp_path: P
             "var BASE_API_URI= '//111.230.104.153:8090/apiv1'",
         )
         archive.writestr("life.localhost.com/static/js/app.demo.js", "demo")
+        archive.writestr(
+            "life.localhost.com/static/js/app.legacy.js",
+            'message:e.msg,type:"error",duration:1e4',
+        )
         archive.writestr("fendan.localhost.com/.env", "SECRET")
 
     destination = tmp_path / "frontend"
@@ -29,6 +33,10 @@ def test_prepare_frontend_extracts_life_assets_and_uses_relative_api(tmp_path: P
         "var BASE_API_URI = '/apiv1';\n"
     )
     assert (destination / "static/js/app.demo.js").read_text() == "demo"
+    assert (destination / "static/js/app.legacy.js").read_text() == (
+        'message:e.msg||(e.response&&e.response.data&&e.response.data.msg)||'
+        '"\\u8bf7\\u6c42\\u5931\\u8d25",type:"error",duration:1e4'
+    )
     assert not (destination / ".env").exists()
 
 

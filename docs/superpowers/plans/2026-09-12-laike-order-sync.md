@@ -43,11 +43,11 @@
 - `append_jsonl(path, record) -> None` writes one sanitized JSON object per line and creates the parent directory.
 - Manifest version becomes `2`; route template includes request headers, field identifiers, pagination, sync effects and dynamic normalization fields while `migrated_routes` remains empty.
 
-- [ ] **Step 1: Write failing tests for settings, mode validation, redaction and JSONL output.**
-- [ ] **Step 2: Run `python -m pytest tests/test_laike_config_and_capture.py -q`; confirm failure is caused by missing interfaces.**
-- [ ] **Step 3: Implement settings aliases, secure defaults, redaction and fixture writer.**
-- [ ] **Step 4: Run the focused test and then `python -m pytest -q`; both must pass.**
-- [ ] **Step 5: Commit with `feat: add laike sync configuration and capture tooling`.**
+- [x] **Step 1: Write failing tests for settings, mode validation, redaction and JSONL output.**
+- [x] **Step 2: Run `python -m pytest tests/test_laike_config_and_capture.py -q`; confirm failure is caused by missing interfaces.**
+- [x] **Step 3: Implement settings aliases, secure defaults, redaction and fixture writer.**
+- [x] **Step 4: Run the focused test and then `python -m pytest -q`; both must pass.**
+- [x] **Step 5: Commit with `feat: add laike sync configuration and capture tooling`.**
 
 ### Task 2: 来客协议、HMAC 验证、HTTP 客户端和字段归一化
 
@@ -67,11 +67,11 @@
 - `WebhookVerifier` verifies the injected signature header over the raw body, supports a configurable digest prefix and `hmac.compare_digest`, and never logs secrets.
 - `OrderFieldMapping` and `OrderNormalizer` only extract explicitly configured paths; absent order ID, subject ID or product ID raises `NormalizationError`; raw payload and original/normalized time values are retained.
 
-- [ ] **Step 1: Write failing tests for page parsing, missing endpoint configuration, signature success/failure/missing, and explicit field mapping.**
-- [ ] **Step 2: Run `python -m pytest tests/test_laike_protocols.py -q`; confirm expected RED failures.**
-- [ ] **Step 3: Implement the protocol dataclasses, injected httpx client, verifier and normalizer.**
-- [ ] **Step 4: Run the focused test and full suite.**
-- [ ] **Step 5: Commit with `feat: add laike protocol and normalization layer`.**
+- [x] **Step 1: Write failing tests for page parsing, missing endpoint configuration, signature success/failure/missing, and explicit field mapping.**
+- [x] **Step 2: Run `python -m pytest tests/test_laike_protocols.py -q`; confirm expected RED failures.**
+- [x] **Step 3: Implement the protocol dataclasses, injected httpx client, verifier and normalizer.**
+- [x] **Step 4: Run the focused test and full suite.**
+- [x] **Step 5: Commit with `feat: add laike protocol and normalization layer`.**
 
 ### Task 3: SQLAlchemy 同步表、Repository 和幂等 Service
 
@@ -90,11 +90,11 @@
 - Reconciliation processes each order in an independent transaction, advances the cursor only after successful page processing, writes a sync run, and records per-order failures without aborting other orders.
 - `SyncResult` includes status, event ID, fetched, succeeded, duplicate, failed and reason fields needed by API and task layers.
 
-- [ ] **Step 1: Write failing SQLite tests for event idempotency, order upsert, invalid input, per-order failure isolation, cursor behavior and rollback.**
-- [ ] **Step 2: Run `python -m pytest tests/test_laike_service.py -q`; confirm RED.**
-- [ ] **Step 3: Implement declarative models, repositories and transaction-scoped service logic.**
-- [ ] **Step 4: Run focused tests and full suite.**
-- [ ] **Step 5: Commit with `feat: add laike sync persistence and service`.**
+- [x] **Step 1: Write failing SQLite tests for event idempotency, order upsert, invalid input, per-order failure isolation, cursor behavior and rollback.**
+- [x] **Step 2: Run `python -m pytest tests/test_laike_service.py -q`; confirm RED.**
+- [x] **Step 3: Implement declarative models, repositories and transaction-scoped service logic.**
+- [x] **Step 4: Run focused tests and full suite.**
+- [x] **Step 5: Commit with `feat: add laike sync persistence and service`.**
 
 ### Task 4: Celery 任务、内部 Webhook 入口和兼容路由注册钩子
 
@@ -112,11 +112,11 @@
 - `register_captured_legacy_route(registry, controller, action, method, handler)` is an explicit hook; `main.py` does not invent or register unknown `collect` actions.
 - Runtime configuration disables webhook/reconcile/write by default; `shadow` can write only the Python sync tables.
 
-- [ ] **Step 1: Write failing tests for internal-only receipt, disabled mode, enqueue behavior and task delegation/retry metadata.**
-- [ ] **Step 2: Run `python -m pytest tests/test_laike_api_and_tasks.py -q`; confirm RED.**
-- [ ] **Step 3: Implement task wiring, internal route and explicit legacy registration helper.**
-- [ ] **Step 4: Run focused tests and full suite.**
-- [ ] **Step 5: Commit with `feat: wire laike webhook and celery tasks`.**
+- [x] **Step 1: Write failing tests for internal-only receipt, disabled mode, enqueue behavior and task delegation/retry metadata.**
+- [x] **Step 2: Run `python -m pytest tests/test_laike_api_and_tasks.py -q`; confirm RED.**
+- [x] **Step 3: Implement task wiring, internal route and explicit legacy registration helper.**
+- [x] **Step 4: Run focused tests and full suite.**
+- [x] **Step 5: Commit with `feat: wire laike webhook and celery tasks`.**
 
 ### Task 5: 契约回放比较、部署配置、文档和最终回归
 
@@ -136,17 +136,17 @@
 - Deployment templates expose the three mode switches and worker/scheduler task names without embedding secrets.
 - Documentation states that real Webhook path, signature algorithm, order ID and database mapping remain blocked until PHP/HAR/test credentials are supplied.
 
-- [ ] **Step 1: Write failing tests for header/body/database comparison and deployment/docs declarations.**
-- [ ] **Step 2: Run `python -m pytest tests/test_laike_contract_comparison.py -q`; confirm RED.**
-- [ ] **Step 3: Implement comparison and documentation/deployment updates.**
-- [ ] **Step 4: Run `python -m pytest -q` and inspect `git diff --check`.**
-- [ ] **Step 5: Commit with `docs: document laike parity rollout and verification`.**
+- [x] **Step 1: Write failing tests for header/body/database comparison and deployment/docs declarations.**
+- [x] **Step 2: Run `python -m pytest tests/test_laike_contract_comparison.py -q`; confirm RED.**
+- [x] **Step 3: Implement comparison and documentation/deployment updates.**
+- [x] **Step 4: Run `python -m pytest -q` and inspect `git diff --check`.**
+- [x] **Step 5: Commit with `docs: document laike parity rollout and verification`.**
 
 ## Verification Checklist
 
-- [ ] `python -m pytest -q` passes with zero failures.
-- [ ] `git diff --check` passes.
-- [ ] No fixture or log contains a real phone, address, token, secret or signature.
-- [ ] `contracts/api-manifest.json` still has an empty `migrated_routes`.
-- [ ] No real external request is made during tests.
-- [ ] Final report explicitly separates implemented local infrastructure from blocked external prerequisites.
+- [x] `python -m pytest -q` passes with zero failures.
+- [x] `git diff --check` passes.
+- [x] No fixture or log contains a real phone, address, token, secret or signature.
+- [x] `contracts/api-manifest.json` still has an empty `migrated_routes`.
+- [x] No real external request is made during tests.
+- [x] Final report explicitly separates implemented local infrastructure from blocked external prerequisites.

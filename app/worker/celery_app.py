@@ -15,9 +15,20 @@ def create_celery_app(
         redis_url = resolved_settings.redis_url
     broker = redis_url or "memory://"
     backend = redis_url or "cache+memory://"
-    return Celery(
+    app = Celery(
         "douyin-order-python",
         broker=broker,
         backend=backend,
         set_as_current=False,
     )
+    app.conf.update(
+        beat_schedule={
+            "retry-failed-laike-events": {
+                "task": "retry_failed_laike_events",
+                "schedule": 60.0,
+            },
+        },
+        enable_utc=True,
+        timezone="UTC",
+    )
+    return app

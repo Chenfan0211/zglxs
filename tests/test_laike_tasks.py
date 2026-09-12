@@ -14,6 +14,7 @@ from app.db.models.laike import LaikeOrder, LaikeWebhookEvent
 from app.laike.contracts import SyncResult
 from app.laike.service import LaikeSyncService
 from app.worker import laike_tasks
+from app.worker.celery_app import create_celery_app
 
 
 class FakeClient:
@@ -112,6 +113,15 @@ def test_worker_tasks_are_registered_on_the_shared_celery_app():
     assert laike_tasks.retry_failed_laike_events.name in (
         laike_tasks.celery_app.tasks
     )
+
+
+def test_shared_celery_app_schedules_failed_event_retry_scanner():
+    app = create_celery_app(redis_url="memory://")
+
+    schedule = app.conf.beat_schedule["retry-failed-laike-events"]
+
+    assert schedule["task"] == "retry_failed_laike_events"
+    assert schedule["schedule"] == 60.0
 
 
 def test_process_webhook_is_idempotent_for_processed_event(

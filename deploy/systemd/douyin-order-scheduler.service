@@ -10,7 +10,7 @@ WorkingDirectory=/srv/douyin-order-python/current
 # LAIKE_WEBHOOK_ENABLED, LAIKE_RECONCILE_ENABLED, LAIKE_WRITE_ENABLED, and LAIKE_SYNC_MODE
 # are supplied by the shared environment file.
 EnvironmentFile=/srv/douyin-order-python/shared/env/api.env
-ExecStart=/srv/douyin-order-python/current/.venv/bin/celery -A app.worker.tasks:celery_app beat --loglevel=INFO
+ExecStart=/srv/douyin-order-python/current/.venv/bin/celery -A app.worker.tasks:celery_app beat --loglevel=INFO --schedule=/srv/douyin-order-python/shared/celerybeat-schedule
 Restart=always
 RestartSec=5
 

@@ -91,7 +91,29 @@ async def test_unregistered_route_without_php_baseline_returns_not_migrated():
     response = await request(app, "/apiv1/Demo/list")
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "API route is not migrated"
+    assert response.json() == {
+        "code": 0,
+        "msg": "接口尚未迁移",
+        "data": None,
+        "detail": "API route is not migrated",
+    }
+
+
+@pytest.mark.asyncio
+async def test_nested_unregistered_route_returns_the_same_legacy_error_envelope():
+    app = create_app(
+        Settings(app_env="test", database_url=None, php_baseline_url=None)
+    )
+
+    response = await request(app, "/apiv1/user/departments/index")
+
+    assert response.status_code == 404
+    assert response.json() == {
+        "code": 0,
+        "msg": "接口尚未迁移",
+        "data": None,
+        "detail": "API route is not migrated",
+    }
 
 
 @pytest.mark.asyncio
@@ -202,4 +224,9 @@ async def test_php_proxy_returns_stable_error_when_baseline_is_unavailable():
     response = await request(app, "/apiv1/Demo/list")
 
     assert response.status_code == 502
-    assert response.json()["detail"] == "PHP baseline unavailable"
+    assert response.json() == {
+        "code": 0,
+        "msg": "PHP baseline unavailable",
+        "data": None,
+        "detail": "PHP baseline unavailable",
+    }

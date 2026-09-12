@@ -12,7 +12,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.settings import Settings
 from app.db.models.base import Base
-from app.db.models.laike import LaikeWebhookEvent
+from app.db.models.laike import LaikeOrder, LaikeWebhookEvent
 from app.laike.client import HmacLaikeClient
 from app.laike.contracts import SyncResult, WebhookVerification
 from app.main import create_app
@@ -170,6 +170,44 @@ def test_create_app_uses_injected_task_app_for_default_laike_enqueuer():
     assert app.state.laike_task_app is task_app
     assert app.state.laike_task_app.conf.broker_url == "redis://injected-host:6379/8"
     assert calls == [("process_laike_webhook", ("evt-injected-broker",))]
+
+
+@pytest.mark.asyncio
+async def test_create_app_default_service_processes_orders_with_default_normalizer(
+    tmp_path,
+):
+    database_url = f"sqlite+pysqlite:///{tmp_path / 'laike-default-normalizer.db'}"
+    engine = create_engine(database_url)
+    Base.metadata.create_all(engine)
+    session_factory = sessionmaker(bind=engine, expire_on_commit=False)
+    app = create_app(
+        Settings(
+            app_env="test",
+            database_url=database_url,
+            php_baseline_url=None,
+            laike_sync_mode="shadow",
+        ),
+        laike_session_factory=session_factory,
+    )
+
+    result = await app.state.laike_service_factory().process_webhook(
+        "evt-default-normalizer",
+        {
+            "event_id": "evt-default-normalizer",
+            "order_id": "order-default-normalizer",
+            "status": "paid",
+            "created_at": "2026-09-12T08:00:00Z",
+        },
+    )
+
+    assert result.success is True
+    with session_factory() as session:
+        assert session.scalar(
+            select(LaikeOrder.provider_order_id).where(
+                LaikeOrder.provider_order_id == "order-default-normalizer"
+            )
+        ) == "order-default-normalizer"
+    engine.dispose()
 
 
 @pytest.mark.asyncio

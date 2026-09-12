@@ -5,13 +5,17 @@ from typing import Any
 from celery import Celery
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.api.health import create_health_router, require_loopback
 from app.api.migration import MigrationRegistry
+from app.api.demo_auth import create_demo_auth_router
+from app.api.demo_dashboard import create_demo_dashboard_router
 from app.core.settings import Settings
 from app.db.session import Database
 from app.integrations.php_baseline import PhpBaselineProxy
 from app.laike.client import HmacLaikeClient, LaikeClient
+from app.laike.normalizer import normalize_order
 from app.laike.service import LaikeSyncService
 from app.laike.webhook import WebhookVerifier, create_laike_webhook_router
 from app.worker.celery_app import create_celery_app
@@ -74,7 +78,11 @@ def create_app(
             client=resolved_laike_client,
             settings=resolved_settings,
             enqueuer=resolved_laike_enqueuer,
-            normalizer=laike_normalizer,
+            normalizer=(
+                laike_normalizer
+                if laike_normalizer is not None
+                else normalize_order
+            ),
         )
     )
 
@@ -90,6 +98,31 @@ def create_app(
     app.state.laike_service_factory = resolved_laike_service_factory
     app.include_router(create_health_router(database))
     app.include_router(create_laike_webhook_router())
+    app.include_router(create_demo_auth_router(resolved_settings))
+    app.include_router(create_demo_dashboard_router(resolved_settings))
+
+    @app.exception_handler(StarletteHTTPException)
+    async def legacy_http_exception_handler(
+        request: Request,
+        exc: StarletteHTTPException,
+    ) -> JSONResponse:
+        detail = exc.detail if isinstance(exc.detail, str) else "请求失败"
+        if request.url.path.startswith("/apiv1/") and detail == "Not Found":
+            detail = "API route is not migrated"
+        messages = {
+            "API route is not migrated": "接口尚未迁移",
+            "PHP baseline unavailable": "PHP baseline unavailable",
+        }
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "code": 0,
+                "msg": messages.get(detail, detail),
+                "data": None,
+                "detail": detail,
+            },
+            headers=exc.headers,
+        )
 
     @app.get(
         "/internal/migration/status",
@@ -104,7 +137,7 @@ def create_app(
         }
 
     @app.api_route(
-        "/apiv1/{controller}/{action}",
+        "/apiv1/{controller}/{action:path}",
         methods=["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"],
     )
     async def migration_dispatch(
@@ -122,7 +155,12 @@ def create_app(
             return await resolved_php_proxy.forward(request, controller, action)
         return JSONResponse(
             status_code=404,
-            content={"detail": "API route is not migrated"},
+            content={
+                "code": 0,
+                "msg": "接口尚未迁移",
+                "data": None,
+                "detail": "API route is not migrated",
+            },
         )
 
     return app
