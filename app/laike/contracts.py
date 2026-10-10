@@ -90,7 +90,13 @@ class NormalizedOrder(BaseModel):
     order_id: str | None = None
     subject_id: str | None = None
     product_id: str | None = None
+    account_id: str | None = None
     status: str | None = None
+    order_status: int | None = None
+    pay_amount_fen: int | None = None
+    create_order_time: int | None = None
+    update_order_time: int | None = None
+    pay_time: int | None = None
     original_created_at: Any = None
     normalized_created_at: str | None = None
     original_updated_at: Any = None

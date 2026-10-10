@@ -9,6 +9,10 @@ class Database:
         self._engine: Engine | None = None
         self._session_factory: sessionmaker[Session] | None = None
 
+    @property
+    def database_url(self) -> str | None:
+        return self._database_url
+
     def _get_engine(self) -> Engine:
         if not self._database_url:
             raise RuntimeError("database is not configured")

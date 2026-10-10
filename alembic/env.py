@@ -1,3 +1,5 @@
+import os
+
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
@@ -7,9 +9,15 @@ config = context.config
 target_metadata = models.Base.metadata
 
 
+def _migration_url() -> str | None:
+    return os.environ.get("LAIKE_DATABASE_URL") or config.get_main_option(
+        "sqlalchemy.url"
+    )
+
+
 def run_migrations_offline() -> None:
     context.configure(
-        url=config.get_main_option("sqlalchemy.url"),
+        url=_migration_url(),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -19,8 +27,10 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
+    configuration = config.get_section(config.config_ini_section, {})
+    configuration["sqlalchemy.url"] = _migration_url()
     connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
+        configuration,
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
     )

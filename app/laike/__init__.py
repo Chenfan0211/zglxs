@@ -3,12 +3,14 @@ from .client import (
     LaikeClient,
     LaikeClientError,
     LaikeConfigurationError,
+    DouyinLaikeClient,
 )
 from .contracts import LaikePage, NormalizedOrder, SyncResult, WebhookVerification
 from .normalizer import (
     NormalizationError,
     OrderFieldMapping,
     OrderNormalizer,
+    normalize_douyin_order,
     normalize_order,
 )
 from .webhook import WebhookVerifier
@@ -18,6 +20,7 @@ __all__ = [
     "LaikeClient",
     "LaikeClientError",
     "LaikeConfigurationError",
+    "DouyinLaikeClient",
     "LaikePage",
     "NormalizedOrder",
     "NormalizationError",
@@ -27,4 +30,5 @@ __all__ = [
     "WebhookVerification",
     "WebhookVerifier",
     "normalize_order",
+    "normalize_douyin_order",
 ]

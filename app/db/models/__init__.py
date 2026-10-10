@@ -7,6 +7,19 @@ from .laike import (
     LaikeSyncRun,
     LaikeWebhookEvent,
 )
+from .live import CustomGroupLiveRoom, LiveRoom, LiveRoomConsole, LiveRoomMember, WorkLog
+from .order import FollowStatus, OrderClaim, OrderFollow, OrderFollowLog
+from .organization import (
+    Account,
+    AccountProduct,
+    CustomServiceCate,
+    CustomServiceGroup,
+    CustomServiceGroupMember,
+    Department,
+    Staff,
+)
+from .system import SystemNotice
+from .system_config import SystemConfig, TableColumnSetting
 
 __all__ = [
     "Base",
@@ -14,4 +27,23 @@ __all__ = [
     "LaikeSyncCursor",
     "LaikeSyncRun",
     "LaikeWebhookEvent",
+    "LiveRoom",
+    "LiveRoomConsole",
+    "LiveRoomMember",
+    "WorkLog",
+    "CustomGroupLiveRoom",
+    "FollowStatus",
+    "OrderClaim",
+    "OrderFollow",
+    "OrderFollowLog",
+    "Account",
+    "AccountProduct",
+    "CustomServiceCate",
+    "CustomServiceGroup",
+    "CustomServiceGroupMember",
+    "Department",
+    "Staff",
+    "SystemNotice",
+    "SystemConfig",
+    "TableColumnSetting",
 ]

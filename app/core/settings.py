@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, field_validator
@@ -63,27 +64,55 @@ class Settings(BaseSettings):
         validation_alias="MIGRATION_SYSTEM_ENABLED",
     )
     database_url: str | None = Field(default=None, validation_alias="DATABASE_URL")
-    php_baseline_url: str | None = Field(
-        default=None,
-        validation_alias="PHP_BASELINE_URL",
-    )
-    php_baseline_timeout_seconds: float = Field(
-        default=10.0,
-        validation_alias="PHP_BASELINE_TIMEOUT_SECONDS",
-        gt=0,
-    )
     redis_url: str | None = Field(default=None, validation_alias="REDIS_URL")
     test_database_url: str | None = Field(
         default=None,
         validation_alias="TEST_DATABASE_URL",
     )
     laike_base_url: str | None = Field(
-        default=None,
+        default="https://open.douyin.com",
         validation_alias="LAIKE_BASE_URL",
     )
     laike_orders_path: str | None = Field(
-        default=None,
+        default="/goodlife/v1/trade/order/query/",
         validation_alias="LAIKE_ORDERS_PATH",
+    )
+    laike_database_url: str | None = Field(
+        default=None,
+        validation_alias="LAIKE_DATABASE_URL",
+    )
+    laike_account_id: str | None = Field(
+        default=None,
+        validation_alias="LAIKE_ACCOUNT_ID",
+    )
+    laike_rpc_transit_life_account: str | None = Field(
+        default=None,
+        validation_alias="LAIKE_RPC_TRANSIT_LIFE_ACCOUNT",
+    )
+    laike_page_size: int = Field(
+        default=100,
+        validation_alias="LAIKE_PAGE_SIZE",
+        ge=1,
+        le=100,
+    )
+    laike_initial_lookback_seconds: int = Field(
+        default=86400,
+        validation_alias="LAIKE_INITIAL_LOOKBACK_SECONDS",
+        gt=0,
+    )
+    laike_poll_interval_seconds: int = Field(
+        default=300,
+        validation_alias="LAIKE_POLL_INTERVAL_SECONDS",
+        gt=0,
+    )
+    laike_api_timeout_seconds: float = Field(
+        default=10.0,
+        validation_alias="LAIKE_API_TIMEOUT_SECONDS",
+        gt=0,
+    )
+    laike_query_include_sensitive_payload: bool = Field(
+        default=False,
+        validation_alias="LAIKE_QUERY_INCLUDE_SENSITIVE_PAYLOAD",
     )
     laike_app_id: str | None = Field(default=None, validation_alias="LAIKE_APP_ID")
     laike_app_secret: str | None = Field(
@@ -135,11 +164,13 @@ class Settings(BaseSettings):
 
     @field_validator(
         "database_url",
-        "php_baseline_url",
         "redis_url",
         "test_database_url",
         "laike_base_url",
         "laike_orders_path",
+        "laike_database_url",
+        "laike_account_id",
+        "laike_rpc_transit_life_account",
         "laike_app_id",
         "laike_app_secret",
         "laike_access_token",

@@ -13,6 +13,8 @@ from sqlalchemy import and_, or_, select, update
 
 from app.db.models.laike import LaikeWebhookEvent
 from app.laike.contracts import LaikePage, SyncResult
+from app.laike.client import LaikeConfigurationError
+from app.laike.provider_errors import LaikeProviderError
 from app.worker.celery_app import create_celery_app
 
 
@@ -300,11 +302,25 @@ def process_laike_webhook(task: Any, event_id: str) -> dict[str, Any]:
         )
 
 
+def _is_non_retryable_error(exc: Exception) -> bool:
+    if isinstance(exc, LaikeConfigurationError):
+        return True
+    if isinstance(exc, LaikeProviderError):
+        return not exc.retryable
+    return str(exc) == "laike order client is not configured"
+
+
 @celery_app.task(bind=True, name="reconcile_laike_account")
 def reconcile_laike_account(task: Any, account_id: str) -> dict[str, Any]:
     service = _get_service()
     if not service.settings.laike_reconcile_enabled:
         return {"status": "disabled", "account_id": account_id}
+    if not service.settings.laike_app_id or not service.settings.laike_app_secret:
+        return {
+            "status": "failed",
+            "account_id": account_id,
+            "reason": "laike provider request failed",
+        }
     try:
         result = _resolve(service.reconcile_account(account_id))
         if not isinstance(result, SyncResult):
@@ -317,6 +333,12 @@ def reconcile_laike_account(task: Any, account_id: str) -> dict[str, Any]:
             **result.model_dump(),
         }
     except Exception as exc:
+        if _is_non_retryable_error(exc):
+            return {
+                "status": "failed",
+                "account_id": account_id,
+                "reason": "laike provider request failed",
+            }
         return _retry_task(
             task,
             service,

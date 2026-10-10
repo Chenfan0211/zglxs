@@ -94,3 +94,77 @@ def normalize_order(
         created_at=payload.get("created_at"),
         payload_json=dict(payload),
     )
+
+
+def _official_int(payload: Mapping[str, Any], field_name: str) -> int | None:
+    value = payload.get(field_name)
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise NormalizationError(f"{field_name} must be an integer")
+    return value
+
+
+def normalize_douyin_order(
+    payload: Mapping[str, Any],
+    *,
+    account_id: str | None = None,
+) -> NormalizedOrder:
+    """Normalize only fields confirmed by the official order query contract."""
+    if not isinstance(payload, Mapping):
+        raise NormalizationError("order payload must be a mapping")
+
+    provider_order_id = payload.get("order_id")
+    if not isinstance(provider_order_id, (str, int)) or isinstance(
+        provider_order_id, bool
+    ):
+        raise NormalizationError("order_id is missing or invalid")
+    order_id = str(provider_order_id).strip()
+    if not order_id:
+        raise NormalizationError("order_id is missing or blank")
+
+    if account_id is not None and (not isinstance(account_id, str) or not account_id.strip()):
+        raise NormalizationError("account_id is invalid")
+
+    order_status = _official_int(payload, "order_status")
+    pay_amount_fen = _official_int(payload, "pay_amount")
+    create_order_time = _official_int(payload, "create_order_time")
+    update_order_time = _official_int(payload, "update_order_time")
+    pay_time = _official_int(payload, "pay_time")
+
+    subject_id = payload.get("user_id")
+    if subject_id is not None:
+        if isinstance(subject_id, bool) or not isinstance(subject_id, (str, int)):
+            raise NormalizationError("user_id is invalid")
+        subject_id = str(subject_id)
+
+    product_id = None
+    products = payload.get("products")
+    if products is not None:
+        if not isinstance(products, list):
+            raise NormalizationError("products must be a list")
+        if products:
+            first_product = products[0]
+            if not isinstance(first_product, Mapping):
+                raise NormalizationError("products item must be an object")
+            raw_product_id = first_product.get("product_id")
+            if raw_product_id is not None:
+                if isinstance(raw_product_id, bool) or not isinstance(
+                    raw_product_id, (str, int)
+                ):
+                    raise NormalizationError("product_id is invalid")
+                product_id = str(raw_product_id)
+
+    return NormalizedOrder(
+        order_id=order_id,
+        account_id=account_id,
+        subject_id=subject_id,
+        product_id=product_id,
+        status=str(order_status) if order_status is not None else None,
+        order_status=order_status,
+        pay_amount_fen=pay_amount_fen,
+        create_order_time=create_order_time,
+        update_order_time=update_order_time,
+        pay_time=pay_time,
+        raw_payload=dict(payload),
+    )

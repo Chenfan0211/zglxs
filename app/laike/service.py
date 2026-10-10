@@ -10,8 +10,14 @@ from typing import Any
 
 from app.db.session import UnitOfWork
 from app.db.models.laike import LaikeSyncRun
+from app.laike.client import DouyinLaikeClient
 from app.laike.contracts import LaikePage, SyncResult, WebhookVerification
-from app.laike.normalizer import NormalizationError, normalize_order
+from app.laike.normalizer import (
+    NormalizationError,
+    normalize_douyin_order,
+    normalize_order,
+)
+from app.laike.provider_errors import LaikeProviderError
 
 from .repositories import LaikeRepository
 
@@ -38,9 +44,16 @@ class LaikeSyncService:
         self.client = client
         self.settings = settings
         self.enqueuer = enqueuer
-        self.normalizer = (
-            normalize_order if normalizer is _DEFAULT_NORMALIZER else normalizer
-        )
+        if normalizer is _DEFAULT_NORMALIZER:
+            self.normalizer = (
+                normalize_douyin_order
+                if isinstance(client, DouyinLaikeClient)
+                else normalize_order
+            )
+        else:
+            self.normalizer = normalizer
+        self._current_account_id: str | None = None
+        self._last_page_duplicate_count = 0
         self.webhook_claim_timeout_seconds = float(
             settings.laike_webhook_claim_timeout_seconds
         )
@@ -124,6 +137,7 @@ class LaikeSyncService:
     async def process_webhook(
         self, event_id: str, payload: Mapping[str, Any] | None = None
     ) -> SyncResult:
+        self._current_account_id = None
         if payload is None:
             with self.session_factory() as session:
                 event = LaikeRepository(session).get_webhook_event(event_id)
@@ -147,6 +161,14 @@ class LaikeSyncService:
         start_time: str | None = None,
         end_time: str | None = None,
     ) -> SyncResult:
+        if (start_time is None) != (end_time is None):
+            return SyncResult(
+                success=False,
+                failed_count=1,
+                reason="start_time and end_time must be provided together",
+            )
+        self._current_account_id = account_id
+        start_time, end_time = self._resolve_window(start_time, end_time, account_id)
         with UnitOfWork(self.session_factory) as unit:
             run = LaikeRepository(unit.session).start_run(
                 account_id, start_time, end_time
@@ -162,17 +184,25 @@ class LaikeSyncService:
         seen_cursors: set[str | None] = {cursor}
         final_cursor: str | None = cursor
         failure_summaries: list[str] = []
+        page_count = 0
+        fetched_count = 0
+        duplicate_count = 0
+        error_code: int | None = None
 
         try:
             while True:
+                page_count += 1
                 page = await self._fetch_page(
                     account_id, start_time, end_time, cursor
                 )
+                fetched_count += len(page.items)
+                self._last_page_duplicate_count = 0
                 page_processed, page_failed, page_errors = await self._process_page(
                     page
                 )
                 processed_count += page_processed
                 failed_count += page_failed
+                duplicate_count += self._last_page_duplicate_count
                 failure_summaries.extend(page_errors)
                 if page_failed:
                     page_success = False
@@ -189,10 +219,16 @@ class LaikeSyncService:
                 seen_cursors.add(page.next_cursor)
                 cursor = page.next_cursor
                 final_cursor = cursor
-            if page_success and final_cursor is not None and final_cursor != initial_cursor:
-                self._advance_cursor(account_id, final_cursor)
+            if page_success:
+                self._advance_cursor(
+                    account_id,
+                    final_cursor,
+                    page_num=page_count,
+                    last_success_at=datetime.now(timezone.utc),
+                )
         except Exception as exc:
             page_success = False
+            error_code = exc.code if isinstance(exc, LaikeProviderError) else None
             error_message = f"{type(exc).__name__}: {self._safe_error_text(exc)}"
 
         if failure_summaries:
@@ -202,6 +238,10 @@ class LaikeSyncService:
                 if error_message
                 else item_error_message
             )
+
+        if not page_success:
+            with UnitOfWork(self.session_factory) as unit:
+                LaikeRepository(unit.session).record_cursor_failure(account_id)
 
         with UnitOfWork(self.session_factory) as unit:
             repository = LaikeRepository(unit.session)
@@ -213,12 +253,20 @@ class LaikeSyncService:
                 processed_count=processed_count,
                 failed_count=failed_count,
                 error_message=error_message,
+                page_count=page_count,
+                fetched_count=fetched_count,
+                succeeded_count=processed_count,
+                duplicate_count=duplicate_count,
+                error_code=error_code,
             )
 
         return SyncResult(
             success=page_success,
             processed_count=processed_count,
             failed_count=failed_count,
+            fetched_count=fetched_count,
+            succeeded_count=processed_count,
+            duplicate_count=duplicate_count,
         )
 
     async def _verify_webhook(
@@ -262,25 +310,32 @@ class LaikeSyncService:
         processed_count = 0
         failed_count = 0
         failure_summaries: list[str] = []
+        self._last_page_duplicate_count = 0
         for payload in page.items:
             try:
                 if self.normalizer is None:
                     raise NormalizationError(
                         "laike order normalizer is not configured"
                     )
-                if hasattr(self.normalizer, "normalize"):
-                    order = self.normalizer.normalize(payload)
-                else:
-                    order = self.normalizer(payload)
+                order = self._normalize_payload(payload)
                 if not order.order_id:
                     raise ValueError("normalized order has no order_id")
                 if self._orders_write_enabled:
                     with UnitOfWork(self.session_factory) as unit:
-                        LaikeRepository(unit.session).upsert_order(
+                        repository = LaikeRepository(unit.session)
+                        if repository.get_order(order.order_id) is not None:
+                            self._last_page_duplicate_count += 1
+                        repository.upsert_order(
                             order.order_id,
                             order.payload_json,
                             order.status,
                             order.created_at,
+                            account_id=order.account_id or self._current_account_id,
+                            order_status=order.order_status,
+                            pay_amount_fen=order.pay_amount_fen,
+                            create_order_time=order.create_order_time,
+                            update_order_time=order.update_order_time,
+                            pay_time=order.pay_time,
                             subject_id=order.subject_id,
                             product_id=order.product_id,
                             original_created_at=order.original_created_at,
@@ -294,6 +349,19 @@ class LaikeSyncService:
                 failure_summaries.append(self._order_error_summary(payload, exc))
         return processed_count, failed_count, failure_summaries
 
+    def _normalize_payload(self, payload: Mapping[str, Any]) -> Any:
+        normalizer = getattr(self.normalizer, "normalize", self.normalizer)
+        try:
+            parameters = inspect.signature(normalizer).parameters
+        except (TypeError, ValueError):
+            parameters = {}
+        if "account_id" in parameters or any(
+            parameter.kind == inspect.Parameter.VAR_KEYWORD
+            for parameter in parameters.values()
+        ):
+            return normalizer(payload, account_id=self._current_account_id)
+        return normalizer(payload)
+
     @property
     def _orders_write_enabled(self) -> bool:
         return self.settings.laike_sync_mode == "shadow" or (
@@ -306,10 +374,48 @@ class LaikeSyncService:
             cursor = LaikeRepository(session).get_cursor(account_id)
             return cursor.cursor if cursor is not None else None
 
-    def _advance_cursor(self, account_id: str, cursor: str | None) -> None:
+    def _advance_cursor(
+        self,
+        account_id: str,
+        cursor: str | None,
+        *,
+        page_num: int = 1,
+        last_success_at: datetime | None = None,
+    ) -> None:
         with UnitOfWork(self.session_factory) as unit:
-            LaikeRepository(unit.session).advance_cursor(account_id, cursor)
+            LaikeRepository(unit.session).advance_cursor(
+                account_id,
+                cursor,
+                page_num=page_num,
+                last_success_at=last_success_at,
+            )
 
+    def _read_cursor_state(self, account_id: str) -> tuple[str | None, datetime | None]:
+        with self.session_factory() as session:
+            cursor = LaikeRepository(session).get_cursor(account_id)
+            if cursor is None:
+                return None, None
+            return cursor.cursor, cursor.last_success_at
+
+    def _resolve_window(
+        self,
+        start_time: str | None,
+        end_time: str | None,
+        account_id: str,
+    ) -> tuple[str, str]:
+        if start_time is not None and end_time is not None:
+            return start_time, end_time
+        now = datetime.now(timezone.utc)
+        _, last_success_at = self._read_cursor_state(account_id)
+        if last_success_at is None:
+            start = now - timedelta(
+                seconds=int(self.settings.laike_initial_lookback_seconds)
+            )
+        else:
+            start = last_success_at - timedelta(
+                seconds=int(self.settings.laike_overlap_seconds)
+            )
+        return _format_utc(start), _format_utc(now)
     @staticmethod
     def _order_error_summary(payload: Any, exc: Exception) -> str:
         provider_order_id = (
@@ -358,3 +464,9 @@ class LaikeSyncService:
                 or hashlib.sha256(raw_body).hexdigest()
             )
         return hashlib.sha256(raw_body).hexdigest()
+
+
+def _format_utc(value: datetime) -> str:
+    if value.tzinfo is None:
+        value = value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")

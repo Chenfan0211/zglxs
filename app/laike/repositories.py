@@ -169,6 +169,12 @@ class LaikeRepository:
         normalized_created_at: str | None = None,
         original_updated_at: Any = None,
         normalized_updated_at: str | None = None,
+        account_id: str | None = None,
+        order_status: int | None = None,
+        pay_amount_fen: int | None = None,
+        create_order_time: int | None = None,
+        update_order_time: int | None = None,
+        pay_time: int | None = None,
     ) -> LaikeOrder:
         if original_created_at is None and created_at is not None:
             original_created_at = created_at
@@ -188,6 +194,12 @@ class LaikeRepository:
                         payload_json=payload_json,
                         status=status,
                         created_at=created_at,
+                        account_id=account_id,
+                        order_status=order_status,
+                        pay_amount_fen=pay_amount_fen,
+                        create_order_time=create_order_time,
+                        update_order_time=update_order_time,
+                        pay_time=pay_time,
                         subject_id=subject_id,
                         product_id=product_id,
                         original_created_at=original_created_at,
@@ -213,6 +225,12 @@ class LaikeRepository:
         for field, value in {
             "status": status,
             "created_at": created_at,
+            "account_id": account_id,
+            "order_status": order_status,
+            "pay_amount_fen": pay_amount_fen,
+            "create_order_time": create_order_time,
+            "update_order_time": update_order_time,
+            "pay_time": pay_time,
             "subject_id": subject_id,
             "product_id": product_id,
             "original_created_at": original_created_at,
@@ -226,17 +244,36 @@ class LaikeRepository:
         self.session.flush()
         return order
 
+    def get_order(self, provider_order_id: str) -> LaikeOrder | None:
+        return self.session.scalar(
+            select(LaikeOrder).where(
+                LaikeOrder.provider_order_id == provider_order_id
+            )
+        )
+
     def get_cursor(self, account_id: str) -> LaikeSyncCursor | None:
         return self.session.scalar(
             select(LaikeSyncCursor).where(LaikeSyncCursor.account_id == account_id)
         )
 
-    def advance_cursor(self, account_id: str, cursor: str | None) -> LaikeSyncCursor:
+    def advance_cursor(
+        self,
+        account_id: str,
+        cursor: str | None,
+        *,
+        page_num: int = 1,
+        last_success_at: datetime | None = None,
+    ) -> LaikeSyncCursor:
         record = self.get_cursor(account_id)
         if record is None:
             try:
                 with self.session.begin_nested():
-                    record = LaikeSyncCursor(account_id=account_id, cursor=cursor)
+                    record = LaikeSyncCursor(
+                        account_id=account_id,
+                        cursor=cursor,
+                        page_num=page_num,
+                        last_success_at=last_success_at,
+                    )
                     self.session.add(record)
                     self.session.flush()
                 return record
@@ -246,7 +283,32 @@ class LaikeRepository:
                     raise
         else:
             record.cursor = cursor
+            record.page_num = page_num
+            if last_success_at is not None:
+                record.last_success_at = last_success_at
             record.updated_at = datetime.now(timezone.utc)
+        self.session.flush()
+        return record
+
+    def record_cursor_failure(
+        self,
+        account_id: str,
+        *,
+        failed_at: datetime | None = None,
+    ) -> LaikeSyncCursor:
+        failed_at = failed_at or datetime.now(timezone.utc)
+        record = self.get_cursor(account_id)
+        if record is None:
+            record = LaikeSyncCursor(
+                account_id=account_id,
+                cursor=None,
+                page_num=1,
+                last_failure_at=failed_at,
+            )
+            self.session.add(record)
+        else:
+            record.last_failure_at = failed_at
+            record.updated_at = failed_at
         self.session.flush()
         return record
 
@@ -273,10 +335,20 @@ class LaikeRepository:
         processed_count: int,
         failed_count: int,
         error_message: str | None = None,
+        page_count: int = 0,
+        fetched_count: int = 0,
+        succeeded_count: int = 0,
+        duplicate_count: int = 0,
+        error_code: int | None = None,
     ) -> LaikeSyncRun:
         run.status = status
         run.processed_count = processed_count
         run.failed_count = failed_count
+        run.page_count = page_count
+        run.fetched_count = fetched_count
+        run.succeeded_count = succeeded_count
+        run.duplicate_count = duplicate_count
+        run.error_code = error_code
         run.error_message = error_message
         run.finished_at = datetime.now(timezone.utc)
         self.session.flush()

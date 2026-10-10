@@ -11,11 +11,24 @@ from app.api.health import create_health_router, require_loopback
 from app.api.migration import MigrationRegistry
 from app.api.demo_auth import create_demo_auth_router
 from app.api.demo_dashboard import create_demo_dashboard_router
+from app.api.dashboard import create_dashboard_router
+from app.api.laike_orders import create_laike_order_router
+from app.api.notices import create_notice_router
+from app.api.organization import create_organization_router
+from app.api.live import create_live_router
+from app.api.order import create_order_router
+from app.api.finance import create_finance_router
+from app.api.system import create_system_router
 from app.core.settings import Settings
 from app.db.session import Database
-from app.integrations.php_baseline import PhpBaselineProxy
-from app.laike.client import HmacLaikeClient, LaikeClient
-from app.laike.normalizer import normalize_order
+from app.domain.routes import register_business_routes
+from app.laike.client import (
+    ClientTokenProvider,
+    DouyinLaikeClient,
+    HmacLaikeClient,
+    LaikeClient,
+)
+from app.laike.normalizer import normalize_douyin_order, normalize_order
 from app.laike.service import LaikeSyncService
 from app.laike.webhook import WebhookVerifier, create_laike_webhook_router
 from app.worker.celery_app import create_celery_app
@@ -24,7 +37,6 @@ from app.worker.celery_app import create_celery_app
 def create_app(
     settings: Settings | None = None,
     registry: MigrationRegistry | None = None,
-    php_proxy: PhpBaselineProxy | None = None,
     laike_client: LaikeClient | None = None,
     laike_session_factory: Callable[[], Any] | None = None,
     laike_enqueuer: Callable[..., Any] | None = None,
@@ -35,27 +47,41 @@ def create_app(
 ) -> FastAPI:
     resolved_settings = settings or Settings.from_env()
     database = Database(resolved_settings.database_url)
+    laike_database = Database(resolved_settings.laike_database_url)
     resolved_registry = registry or MigrationRegistry(
         module_enabled=resolved_settings.formal_migration_enabled
     )
-    resolved_php_proxy = php_proxy or (
-        PhpBaselineProxy(
-            resolved_settings.php_baseline_url,
-            resolved_settings.php_baseline_timeout_seconds,
-        )
-        if resolved_settings.php_baseline_url
-        else None
-    )
+    register_business_routes(resolved_registry, resolved_settings)
     resolved_webhook_verifier = WebhookVerifier(
         resolved_settings.laike_webhook_secret,
         signature_header=resolved_settings.laike_webhook_signature_header,
         event_id_header=resolved_settings.laike_webhook_event_id_header,
     )
-    resolved_laike_client = laike_client or HmacLaikeClient(
-        resolved_settings.laike_webhook_secret,
-        verifier=resolved_webhook_verifier,
-    )
-    resolved_session_factory = laike_session_factory or database.session
+    if laike_client is not None:
+        resolved_laike_client = laike_client
+    elif resolved_settings.laike_app_id and resolved_settings.laike_app_secret:
+        token_provider = ClientTokenProvider(
+            resolved_settings.laike_app_id,
+            resolved_settings.laike_app_secret,
+            base_url=resolved_settings.laike_base_url or "https://open.douyin.com",
+            timeout=resolved_settings.laike_api_timeout_seconds,
+        )
+        resolved_laike_client = DouyinLaikeClient(
+            token_provider,
+            base_url=resolved_settings.laike_base_url or "https://open.douyin.com",
+            orders_path=resolved_settings.laike_orders_path
+            or "/goodlife/v1/trade/order/query/",
+            page_size=resolved_settings.laike_page_size,
+            timeout=resolved_settings.laike_api_timeout_seconds,
+            rpc_transit_life_account=resolved_settings.laike_rpc_transit_life_account,
+            webhook_verifier=resolved_webhook_verifier,
+        )
+    else:
+        resolved_laike_client = HmacLaikeClient(
+            resolved_settings.laike_webhook_secret,
+            verifier=resolved_webhook_verifier,
+        )
+    resolved_session_factory = laike_session_factory or laike_database.session
     resolved_laike_task_app = laike_task_app or create_celery_app(
         settings=resolved_settings
     )
@@ -80,9 +106,11 @@ def create_app(
             client=resolved_laike_client,
             settings=resolved_settings,
             enqueuer=resolved_laike_enqueuer,
-            normalizer=(
-                laike_normalizer
-                if laike_normalizer is not None
+            normalizer=laike_normalizer
+            if laike_normalizer is not None
+            else (
+                normalize_douyin_order
+                if isinstance(resolved_laike_client, DouyinLaikeClient)
                 else normalize_order
             ),
         )
@@ -91,8 +119,8 @@ def create_app(
     app = FastAPI(title="抖音订单管理系统 Python API")
     app.state.settings = resolved_settings
     app.state.database = database
+    app.state.laike_database = laike_database
     app.state.migration_registry = resolved_registry
-    app.state.php_baseline_proxy = resolved_php_proxy
     app.state.laike_client = resolved_laike_client
     app.state.laike_session_factory = resolved_session_factory
     app.state.laike_task_app = resolved_laike_task_app
@@ -102,6 +130,14 @@ def create_app(
     app.include_router(create_laike_webhook_router())
     app.include_router(create_demo_auth_router(resolved_settings))
     app.include_router(create_demo_dashboard_router(resolved_settings))
+    app.include_router(create_laike_order_router())
+    app.include_router(create_dashboard_router())
+    app.include_router(create_notice_router())
+    app.include_router(create_organization_router())
+    app.include_router(create_live_router())
+    app.include_router(create_order_router())
+    app.include_router(create_finance_router())
+    app.include_router(create_system_router())
 
     @app.exception_handler(StarletteHTTPException)
     async def legacy_http_exception_handler(
@@ -113,16 +149,17 @@ def create_app(
             detail = "API route is not migrated"
         messages = {
             "API route is not migrated": "接口尚未迁移",
-            "PHP baseline unavailable": "PHP baseline unavailable",
         }
+        content = {
+            "code": 0,
+            "msg": messages.get(detail, detail),
+            "data": None,
+        }
+        if not request.url.path.startswith("/apiv1/"):
+            content["detail"] = detail
         return JSONResponse(
             status_code=exc.status_code,
-            content={
-                "code": 0,
-                "msg": messages.get(detail, detail),
-                "data": None,
-                "detail": detail,
-            },
+            content=content,
             headers=exc.headers,
         )
 
@@ -134,13 +171,14 @@ def create_app(
         require_loopback(request)
         return {
             "migrated_route_count": len(resolved_registry.routes()),
-            "fallback_enabled": resolved_php_proxy is not None,
+            "fallback_enabled": False,
             "manifest_path": "contracts/api-manifest.json",
         }
 
     @app.api_route(
         "/apiv1/{controller}/{action:path}",
         methods=["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"],
+        include_in_schema=False,
     )
     async def migration_dispatch(
         request: Request,
@@ -153,15 +191,12 @@ def create_app(
             if inspect.isawaitable(result):
                 result = await result
             return result
-        if resolved_php_proxy is not None:
-            return await resolved_php_proxy.forward(request, controller, action)
         return JSONResponse(
             status_code=404,
             content={
                 "code": 0,
                 "msg": "接口尚未迁移",
                 "data": None,
-                "detail": "API route is not migrated",
             },
         )
 
@@ -169,3 +204,4 @@ def create_app(
 
 
 app = create_app()
+

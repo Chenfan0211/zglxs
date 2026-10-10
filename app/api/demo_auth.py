@@ -28,6 +28,7 @@ def create_demo_auth_router(settings: Settings) -> APIRouter:
             }
         )
 
+    @router.post("/apiv1/user/login")
     @router.post("/apiv1/user/user/login")
     async def login(request: Request):
         if not _demo_enabled(settings):
@@ -85,6 +86,7 @@ def create_demo_auth_router(settings: Settings) -> APIRouter:
         )
         return response
 
+    @router.post("/apiv1/user/logout")
     @router.post("/apiv1/user/user/logout")
     async def logout():
         if not _demo_enabled(settings):
