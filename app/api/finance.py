@@ -154,7 +154,7 @@ def create_finance_router() -> APIRouter:
         try:
             with request.app.state.laike_session_factory() as session:
                 stmt = select(LaikeOrder).where(LaikeOrder.pay_amount_fen.is_not(None)).order_by(LaikeOrder.id.desc())
-                total = len(session.scalars(stmt).all())
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = session.scalars(stmt.offset((page - 1) * size).limit(size)).all()
                 order_ids = [r.provider_order_id for r in rows]
                 follows = {}

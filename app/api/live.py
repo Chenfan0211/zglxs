@@ -9,6 +9,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Request
+from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.responses import failure, success
@@ -46,7 +47,7 @@ def create_live_router() -> APIRouter:
                 keyword = str(payload.get("keyword", "")).strip()
                 if keyword:
                     stmt = stmt.where(LiveRoom.name.like(f"%{keyword}%"))
-                total = len(session.scalars(stmt).all())
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = session.scalars(stmt.offset((page - 1) * size).limit(size)).all()
                 dept_map = {}
                 dept_ids = {r.department_id for r in rows if r.department_id}
@@ -153,7 +154,7 @@ def create_live_router() -> APIRouter:
                 stmt = select(LiveRoomMember).order_by(LiveRoomMember.id.desc())
                 if live_room_id is not None:
                     stmt = stmt.where(LiveRoomMember.live_room_id == live_room_id)
-                total = len(session.scalars(stmt).all())
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = session.scalars(stmt.offset((page - 1) * size).limit(size)).all()
                 nick_map = _staff_nickname_map(session, [r.staff_id for r in rows])
         except (RuntimeError, SQLAlchemyError):
@@ -245,7 +246,7 @@ def create_live_router() -> APIRouter:
                 stmt = select(LiveRoomConsole).order_by(LiveRoomConsole.id.desc())
                 if live_room_id is not None:
                     stmt = stmt.where(LiveRoomConsole.live_room_id == live_room_id)
-                total = len(session.scalars(stmt).all())
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = session.scalars(stmt.offset((page - 1) * size).limit(size)).all()
                 nick_map = _staff_nickname_map(session, [r.staff_id for r in rows])
         except (RuntimeError, SQLAlchemyError):
@@ -303,7 +304,7 @@ def create_live_router() -> APIRouter:
         try:
             with request.app.state.laike_session_factory() as session:
                 stmt = select(WorkLog).order_by(WorkLog.id.desc())
-                total = len(session.scalars(stmt).all())
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = session.scalars(stmt.offset((page - 1) * size).limit(size)).all()
         except (RuntimeError, SQLAlchemyError):
             return failure("业务库未配置", status_code=503)
@@ -389,7 +390,7 @@ def create_live_router() -> APIRouter:
                 stmt = select(CustomGroupLiveRoom).order_by(CustomGroupLiveRoom.id.desc())
                 if group_id is not None:
                     stmt = stmt.where(CustomGroupLiveRoom.group_id == group_id)
-                total = len(session.scalars(stmt).all())
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = session.scalars(stmt.offset((page - 1) * size).limit(size)).all()
         except (RuntimeError, SQLAlchemyError):
             return failure("业务库未配置", status_code=503)

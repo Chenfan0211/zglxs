@@ -2,7 +2,6 @@
 import { computed } from 'vue';
 import { createReusableTemplate } from '@vueuse/core';
 import { useThemeStore } from '@/store/modules/theme';
-import { $t } from '@/locales';
 import type { HomeSummary } from '@/service/api';
 
 defineOptions({

@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Request
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.responses import failure, success
@@ -176,7 +176,7 @@ def create_order_router() -> APIRouter:
                     stmt = stmt.where(LaikeOrder.account_id.like(f"%{account_id}%"))
                 if order_status is not None:
                     stmt = stmt.where(LaikeOrder.order_status == order_status)
-                total = len(session.scalars(stmt).all())
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = session.scalars(stmt.offset((page - 1) * size).limit(size)).all()
                 # 联查 order_follow 与关联名称
                 order_ids = [r.provider_order_id for r in rows]
@@ -288,7 +288,7 @@ def create_order_router() -> APIRouter:
                 stmt = select(OrderFollowLog).order_by(OrderFollowLog.id.desc())
                 if order_id:
                     stmt = stmt.where(OrderFollowLog.provider_order_id == order_id)
-                total = len(session.scalars(stmt).all())
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = session.scalars(stmt.offset((page - 1) * size).limit(size)).all()
                 staff_ids = [r.staff_id for r in rows if r.staff_id]
                 staff_map = {}
@@ -316,7 +316,7 @@ def create_order_router() -> APIRouter:
                 stmt = select(OrderClaim).order_by(OrderClaim.id.desc())
                 if order_id:
                     stmt = stmt.where(OrderClaim.provider_order_id == order_id)
-                total = len(session.scalars(stmt).all())
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = session.scalars(stmt.offset((page - 1) * size).limit(size)).all()
         except (RuntimeError, SQLAlchemyError):
             return failure("业务库未配置", status_code=503)
@@ -348,7 +348,7 @@ def create_order_router() -> APIRouter:
         try:
             with request.app.state.laike_session_factory() as session:
                 stmt = select(FollowStatus).order_by(FollowStatus.sort_order)
-                total = len(session.scalars(stmt).all())
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = session.scalars(stmt.offset((page - 1) * size).limit(size)).all()
         except (RuntimeError, SQLAlchemyError):
             return failure("业务库未配置", status_code=503)
@@ -550,7 +550,7 @@ def create_order_router() -> APIRouter:
                 stmt = select(LaikeOrder).order_by(LaikeOrder.id.desc())
                 if statuses:
                     stmt = stmt.where(LaikeOrder.order_status.in_(statuses))
-                total = len(session.scalars(stmt).all())
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = session.scalars(stmt.offset((page - 1) * size).limit(size)).all()
                 order_ids = [r.provider_order_id for r in rows]
                 follows = {}
@@ -590,7 +590,7 @@ def create_order_router() -> APIRouter:
                 stmt = select(OrderFollowLog).order_by(OrderFollowLog.id.desc())
                 if order_id:
                     stmt = stmt.where(OrderFollowLog.provider_order_id == order_id)
-                total = len(session.scalars(stmt).all())
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = session.scalars(stmt.offset((page - 1) * size).limit(size)).all()
         except (RuntimeError, SQLAlchemyError):
             return failure("业务库未配置", status_code=503)

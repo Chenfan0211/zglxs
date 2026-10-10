@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { h, onMounted, ref } from 'vue';
+import { onMounted, ref } from 'vue';
 import type { DataTableColumns } from 'naive-ui';
 import { fetchFinanceStatistic } from '@/service/api';
 import type { FinanceStatistic } from '@/service/api';

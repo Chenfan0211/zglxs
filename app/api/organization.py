@@ -63,7 +63,7 @@ def create_organization_router() -> APIRouter:
                     stmt = stmt.where(Department.name.like(f"%{keyword}%"))
                 if dept_type and dept_type != "0":
                     stmt = stmt.where(Department.dept_type == dept_type)
-                total = len(_rows(session, stmt))
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = _rows(session, stmt.offset((page - 1) * size).limit(size))
                 user_nums = {}
                 for r in rows:
@@ -181,7 +181,7 @@ def create_organization_router() -> APIRouter:
                     stmt = stmt.where(Staff.name.like(f"%{keyword}%") | Staff.nickname.like(f"%{keyword}%") | Staff.mobile.like(f"%{keyword}%"))
                 if department_id is not None:
                     stmt = stmt.where(Staff.department_id == department_id)
-                total = len(_rows(session, stmt))
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = _rows(session, stmt.offset((page - 1) * size).limit(size))
                 dept_map = {}
                 dept_ids = {r.department_id for r in rows if r.department_id}
@@ -332,7 +332,7 @@ def create_organization_router() -> APIRouter:
                 keyword = str(payload.get("keyword", "")).strip()
                 if keyword:
                     stmt = stmt.where(Account.username.like(f"%{keyword}%") | Account.account_name.like(f"%{keyword}%") | Account.account_id.like(f"%{keyword}%"))
-                total = len(_rows(session, stmt))
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = _rows(session, stmt.offset((page - 1) * size).limit(size))
                 product_nums = {}
                 for r in rows:
@@ -520,7 +520,7 @@ def create_organization_router() -> APIRouter:
         try:
             with request.app.state.laike_session_factory() as session:
                 stmt = select(CustomServiceCate).order_by(CustomServiceCate.id.desc())
-                total = len(_rows(session, stmt))
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = _rows(session, stmt.offset((page - 1) * size).limit(size))
         except (RuntimeError, SQLAlchemyError):
             return failure("业务库未配置", status_code=503)
@@ -612,7 +612,7 @@ def create_organization_router() -> APIRouter:
                 keyword = str(payload.get("keyword", "")).strip()
                 if keyword:
                     stmt = stmt.where(CustomServiceGroup.name.like(f"%{keyword}%"))
-                total = len(_rows(session, stmt))
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = _rows(session, stmt.offset((page - 1) * size).limit(size))
                 dept_map = {}
                 dept_ids = {r.department_id for r in rows if r.department_id}
@@ -751,7 +751,7 @@ def create_organization_router() -> APIRouter:
                 stmt = select(CustomServiceGroupMember).order_by(CustomServiceGroupMember.id.desc())
                 if group_id is not None:
                     stmt = stmt.where(CustomServiceGroupMember.group_id == group_id)
-                total = len(_rows(session, stmt))
+                total = int(session.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
                 rows = _rows(session, stmt.offset((page - 1) * size).limit(size))
                 staff_ids = {r.staff_id for r in rows}
                 staff_map = {}

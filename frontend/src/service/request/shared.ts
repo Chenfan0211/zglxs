@@ -12,7 +12,7 @@ export function getAuthorization() {
 /**
  * 后端无 refresh token 机制，token 失效时直接清理并回到登录
  */
-export async function handleExpiredRequest(state: RequestInstanceState) {
+export async function handleExpiredRequest(_state: RequestInstanceState) {
   const { resetStore } = useAuthStore();
   resetStore();
 
