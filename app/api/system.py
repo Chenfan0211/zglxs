@@ -152,11 +152,6 @@ def create_system_router() -> APIRouter:
         return success({})
 
     # ---------- 短信/手机号座位管理（外部集成占位） ----------
-    async def mobile_stub(request: Request, message: str):
-        if not _has_demo_session(request):
-            return failure("请先登录", status_code=401)
-        return failure(message, status_code=501)
-
     async def mobile_config_update(request: Request):
         if not _has_demo_session(request):
             return failure("请先登录", status_code=401)
