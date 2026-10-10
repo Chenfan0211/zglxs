@@ -66,6 +66,9 @@ async def test_department_full_crud_cycle(org_app):
     dept_id = added["id"]
     assert added["name"] == "售后部"
     assert added["dept_type"] == "maintenance"
+    # 字段命名一致性：写接口返回 department_name / type，与列表接口一致
+    assert added["department_name"] == "售后部"
+    assert added["type"] == "maintenance"
 
     # 2. edit
     resp = await post(

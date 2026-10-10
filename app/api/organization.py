@@ -103,6 +103,9 @@ def create_organization_router() -> APIRouter:
                 session.commit()
                 session.refresh(row)
                 result = _to_dict(row, ["id", "name", "dept_type", "ordid"])
+                result["department_name"] = row.name
+                result["type"] = row.dept_type
+                result["type_str"] = DEPT_TYPE_MAP.get(row.dept_type, row.dept_type)
         except (RuntimeError, SQLAlchemyError):
             return failure("业务库未配置", status_code=503)
         return success(result)
@@ -128,6 +131,9 @@ def create_organization_router() -> APIRouter:
                 row.updated_at = _utcnow()
                 session.commit()
                 result = _to_dict(row, ["id", "name", "dept_type", "ordid"])
+                result["department_name"] = row.name
+                result["type"] = row.dept_type
+                result["type_str"] = DEPT_TYPE_MAP.get(row.dept_type, row.dept_type)
         except (RuntimeError, SQLAlchemyError):
             return failure("业务库未配置", status_code=503)
         return success(result)
