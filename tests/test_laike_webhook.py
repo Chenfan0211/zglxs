@@ -109,7 +109,6 @@ def make_app(
     settings = Settings(
         app_env="test",
         database_url=None,
-        php_baseline_url=None,
         laike_webhook_enabled=enabled,
         laike_webhook_secret=secret,
     )
@@ -125,7 +124,6 @@ def test_create_app_uses_settings_broker_for_default_laike_enqueuer():
     settings = Settings(
         app_env="test",
         database_url=None,
-        php_baseline_url=None,
         redis_url="redis://settings-host:6379/7",
         laike_webhook_enabled=False,
     )
@@ -154,7 +152,6 @@ def test_create_app_uses_injected_task_app_for_default_laike_enqueuer():
         Settings(
             app_env="test",
             database_url=None,
-            php_baseline_url=None,
             redis_url="redis://settings-host:6379/7",
             laike_webhook_enabled=False,
         ),
@@ -184,7 +181,6 @@ async def test_create_app_default_service_processes_orders_with_default_normaliz
         Settings(
             app_env="test",
             database_url=database_url,
-            php_baseline_url=None,
             laike_sync_mode="shadow",
         ),
         laike_session_factory=session_factory,
@@ -382,7 +378,6 @@ async def test_webhook_persists_before_enqueue_and_does_not_process_inline(
     settings = Settings(
         app_env="test",
         database_url=database_url,
-        php_baseline_url=None,
         laike_webhook_enabled=True,
         laike_webhook_secret=secret,
     )
@@ -428,7 +423,6 @@ async def test_invalid_hmac_does_not_persist_an_event(tmp_path):
         Settings(
             app_env="test",
             database_url=database_url,
-            php_baseline_url=None,
             laike_webhook_enabled=True,
             laike_webhook_secret=secret,
         ),

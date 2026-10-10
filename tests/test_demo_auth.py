@@ -7,7 +7,6 @@ import pytest
 
 from app.core.settings import Settings
 from app.main import create_app
-from tools.frontend_bundle import render_frontend_config
 
 
 def demo_settings(**overrides) -> Settings:
@@ -15,7 +14,6 @@ def demo_settings(**overrides) -> Settings:
         "app_env": "test",
         "environment": "test",
         "database_url": None,
-        "php_baseline_url": None,
         "demo_login_enabled": True,
         "demo_login_username": "13800000000",
         "demo_login_password": "Demo@12345",
@@ -158,6 +156,32 @@ async def test_demo_logout_clears_the_test_session_cookie():
 
 
 @pytest.mark.asyncio
+async def test_demo_auth_supports_distinct_top_level_legacy_paths():
+    app = create_app(demo_settings())
+    transport = httpx.ASGITransport(app=app, client=("127.0.0.1", 123))
+    body = urlencode(
+        {
+            "mobile": "13800000000",
+            "password": "Demo@12345",
+            "captcha": "1111",
+            "captcha_key": "DEMO-CAPTCHA",
+        }
+    ).encode()
+
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        login_response = await client.post(
+            "/apiv1/user/login",
+            content=body,
+            headers={"content-type": "application/x-www-form-urlencoded"},
+        )
+        logout_response = await client.post("/apiv1/user/logout")
+
+    assert login_response.status_code == 200
+    assert login_response.json()["data"]["token"].startswith("DEMO-")
+    assert logout_response.json() == {"code": 1, "msg": "success", "data": {}}
+
+
+@pytest.mark.asyncio
 async def test_demo_auth_is_disabled_by_default_and_has_a_visible_message():
     response = await request(
         create_app(demo_settings(demo_login_enabled=False)),
@@ -171,21 +195,3 @@ async def test_demo_auth_is_disabled_by_default_and_has_a_visible_message():
         "msg": "测试登录未启用",
         "data": None,
     }
-
-
-def test_frontend_config_only_autofills_when_explicitly_requested():
-    assert render_frontend_config() == "var BASE_API_URI = '/apiv1';\n"
-
-    config = render_frontend_config(
-        demo_autofill=True,
-        demo_hostnames=("192.168.28.188",),
-        demo_mobile="13800000000",
-        demo_password="Demo@12345",
-    )
-
-    assert "192.168.28.188" in config
-    assert "13800000000" in config
-    assert "Demo@12345" in config
-    assert "isRememberAccount" in config
-    assert "querySelectorAll('input')" in config
-    assert "dispatchEvent(new Event('input'" in config

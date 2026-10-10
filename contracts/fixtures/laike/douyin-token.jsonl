@@ -1,0 +1,1 @@
+{"request_id":"demo-douyin-token-001","method":"POST","path":"/oauth/client_token/","request":{"client_key":"[REDACTED]","client_secret":"[REDACTED]","grant_type":"client_credential"},"response":{"data":{"access_token":"[REDACTED]","expires_in":7200},"message":"success"}}

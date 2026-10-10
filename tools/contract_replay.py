@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 from typing import Any
+from urllib.parse import urlencode
 
 import httpx
 
@@ -44,12 +45,29 @@ async def replay_cases(
                 "params": request.get("query") or {},
             }
             if request.get("body") is not None:
-                request_kwargs["json"] = request["body"]
+                content_type = next(
+                    (
+                        str(value).lower()
+                        for key, value in headers.items()
+                        if key.lower() == "content-type"
+                    ),
+                    "",
+                )
+                if "application/x-www-form-urlencoded" in content_type:
+                    request_kwargs["content"] = urlencode(
+                        request["body"],
+                        doseq=True,
+                    ).encode("utf-8")
+                else:
+                    request_kwargs["json"] = request["body"]
             response = await client.request(case["method"], path, **request_kwargs)
             append_jsonl(
                 destination,
                 {
                     "request_id": case["request_id"],
+                    "method": case["method"].upper(),
+                    "controller": case["controller"],
+                    "action": case["action"],
                     "status_code": response.status_code,
                     "body": _response_body(response),
                     "headers": sanitize_payload(dict(response.headers.items())),

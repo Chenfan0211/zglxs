@@ -13,6 +13,9 @@ test -d "$release"
 test -d "$base/shared/env"
 test -d "$base/shared/logs"
 
+# 前端为 soybean 构建产物，发布前必须已生成 frontend/dist
+test -f "$release/frontend/dist/index.html"
+
 nginx -t
 ln -sfn "$release" "$base/current"
 systemctl daemon-reload
@@ -20,3 +23,4 @@ systemctl restart douyin-order-api.service
 systemctl restart douyin-order-worker.service
 systemctl restart douyin-order-scheduler.service
 systemctl reload nginx
+

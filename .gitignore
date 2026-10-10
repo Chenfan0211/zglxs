@@ -11,3 +11,6 @@ __pycache__/
 runtime/
 uploads/
 *.log
+
+frontend-legacy-backup/
+

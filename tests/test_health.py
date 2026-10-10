@@ -27,8 +27,6 @@ async def test_live_health_is_available_without_database():
         Settings(
             app_env="test",
             database_url=None,
-            php_baseline_url=None,
-            php_baseline_timeout_seconds=1,
         )
     )
 
@@ -44,8 +42,6 @@ async def test_ready_health_reports_unconfigured_database():
         Settings(
             app_env="test",
             database_url=None,
-            php_baseline_url=None,
-            php_baseline_timeout_seconds=1,
         )
     )
 
@@ -61,8 +57,6 @@ async def test_ready_health_checks_configured_sqlite_database():
         Settings(
             app_env="test",
             database_url="sqlite+pysqlite:///:memory:",
-            php_baseline_url=None,
-            php_baseline_timeout_seconds=1,
         )
     )
 
@@ -81,8 +75,6 @@ async def test_internal_health_rejects_non_loopback_request():
         Settings(
             app_env="test",
             database_url=None,
-            php_baseline_url=None,
-            php_baseline_timeout_seconds=1,
         )
     )
 

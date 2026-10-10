@@ -59,7 +59,7 @@ def make_request(
 
 
 def test_settings_include_worker_and_runtime_defaults():
-    settings = Settings(app_env="test", database_url=None, php_baseline_url=None)
+    settings = Settings(app_env="test", database_url=None)
 
     assert settings.app_name == "douyin-order-python"
     assert settings.log_level == "INFO"

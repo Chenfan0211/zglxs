@@ -1,0 +1,244 @@
+{
+  "version": 1,
+  "source": "local-demo",
+  "notes": "Local UI contract fixture only. It is not PHP parity proof and must never be promoted.",
+  "routes": {
+    "common/getconfiginfo": {
+      "status_code": 200,
+      "data_defaults": {"name": null, "logo": null, "web_name": null},
+      "body": {"code": 1, "msg": "success", "data": {"name": "DEMO 抖音订单管理系统", "logo": null, "web_name": "DEMO 本地环境"}}
+    },
+    "common/getupversioninfo": {
+      "status_code": 200,
+      "data_defaults": {"version": null, "content": null, "update_time": null},
+      "body": {"code": 1, "msg": "success", "data": {"version": null, "content": null, "update_time": null}}
+    },
+    "common/getupversionnum": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"num": 0}}
+    },
+    "console/liveroomconsolelist": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"list": [{"id": "DEMO-CONSOLE-001", "nickname": "DEMO 中控", "live_room_id": "DEMO-LIVE-001"}]}}
+    },
+    "console/consoleworklog": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 0, "list": []}}
+    },
+    "console/worklog": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 0, "list": []}}
+    },
+    "live/room": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "list": [{"id": "DEMO-LIVE-001", "live_name": "DEMO 直播间", "status": 1}]}}
+    },
+    "user/customgroupliverooms/index": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "list": [{"id": "DEMO-GROUP-LIVE-001", "group_id": "DEMO-GROUP-001", "live_room_id": "DEMO-LIVE-001", "live_name": "DEMO 直播间"}], "group_list": [], "live_room_list": []}}
+    },
+    "user/customgroupliverooms/searchliveroom": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"list": [{"id": "DEMO-LIVE-001", "live_name": "DEMO 直播间"}]}}
+    },
+    "user/customservicecates/index": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "list": [{"id": "DEMO-CATE-001", "cate_name": "DEMO 客服分类", "status": 1}]}}
+    },
+    "user/liveroomconsoles/index": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "list": [{"id": "DEMO-CONSOLE-LINK-001", "live_room_id": "DEMO-LIVE-001", "uid": "DEMO-STAFF-007", "nickname": "DEMO 中控", "status": 1}], "live_room_list": []}}
+    },
+    "user/liveroomconsoles/searchconsole": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"list": [{"id": "DEMO-STAFF-007", "nickname": "DEMO 中控"}]}}
+    },
+    "user/liveroommembers/index": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "list": [{"id": "DEMO-LIVE-MEMBER-001", "live_room_id": "DEMO-LIVE-001", "uid": "DEMO-STAFF-005", "nickname": "DEMO 主播", "status": 1}], "live_room_list": []}}
+    },
+    "user/liveroommembers/searchmember": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"list": [{"id": "DEMO-STAFF-005", "nickname": "DEMO 主播"}]}}
+    },
+    "user/liverooms/index": {
+      "status_code": 200,
+      "data_defaults": {"total": 0, "list": [], "department_list": [], "selected_room": null},
+      "row_defaults": {"live_name": null, "department_name": null, "status": null},
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "list": [{"id": "DEMO-LIVE-001", "live_name": "DEMO 直播间", "department_id": "DEMO-DEPT-001", "department_name": "DEMO 直播部门", "status": 1}], "department_list": [{"id": "DEMO-DEPT-001", "department_name": "DEMO 直播部门"}], "selected_room": null}}
+    },
+    "user/mobiles/calllog": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 0, "list": []}}
+    },
+    "user/mobiles/getconfiginfo": {
+      "status_code": 200,
+      "data_defaults": {"enabled": null, "seat_id": null},
+      "body": {"code": 1, "msg": "success", "data": {"enabled": null, "seat_id": null, "ykf_config_info": {"app_id": "", "secret_key": "", "status": 0, "money": "0.00", "end_time": "", "set_meal_list": []}}}
+    },
+    "user/mobiles/getmobilecheckinfo": {
+      "status_code": 200,
+      "data_defaults": {
+        "check_mobile_is_open": "0",
+        "info": {
+          "mobile_check_num": 0,
+          "mobile_check_surplus_num": 0
+        }
+      },
+      "body": {"code": 1, "msg": "success", "data": {"enabled": null, "operator": null}}
+    },
+    "user/mobiles/getqrcodeinfo": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"qrcode": null, "expire_time": null}}
+    },
+    "user/mobiles/getqrcodestatus": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"status": null}}
+    },
+    "user/mobiles/getsmsinfo": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"enabled": null, "sign_name": null}}
+    },
+    "user/mobiles/getsmstemplete": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"list": []}}
+    },
+    "user/mobiles/searchseat": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"list": []}}
+    },
+    "user/mobiles/seatlist": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 0, "list": []}}
+    },
+    "user/mobiles/wechatlist": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 0, "list": []}}
+    },
+    "user/usertablecolumns/detail": {
+      "status_code": 200,
+      "data_defaults": {"content": ""},
+      "body": {"code": 1, "msg": "success", "data": {"id": null, "columns": []}}
+    },
+    "user/getInfo": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"id": "DEMO-STAFF-001", "nickname": "DEMO 系统管理员", "group_id": 1, "menuPrivCodes": [{"privCode": "demo:read"}]}}
+    },
+    "user/accounts/index": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "list": [{"id": "DEMO-ACCOUNT-001", "name": "DEMO 来客主体", "status": 1, "createtime": "2026-09-13 09:00:00"}]}}
+    },
+    "user/accounts/productlist": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "list": [{"id": "DEMO-PRODUCT-001", "product_name": "DEMO 测试商品", "account_id": "DEMO-ACCOUNT-001", "status": 1}]}}
+    },
+    "user/departments/index": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 3, "list": [{"id": "DEMO-DEPT-001", "department_name": "DEMO 直播部门", "type": "1", "ordid": 10, "rules": "DEMO", "user_num": 3}, {"id": "DEMO-DEPT-002", "department_name": "DEMO 转化部门", "type": "2", "ordid": 20, "rules": "DEMO", "user_num": 2}, {"id": "DEMO-DEPT-003", "department_name": "DEMO 售后部门", "type": "3", "ordid": 30, "rules": "DEMO", "user_num": 1}], "department_type_list": [{"key": "1", "value": "直播部门"}, {"key": "2", "value": "转化部门"}, {"key": "3", "value": "售后部门"}]}}
+    },
+    "user/departments/searchdepartment": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"list": [{"id": "DEMO-DEPT-001", "department_name": "DEMO 直播部门", "type": 1}, {"id": "DEMO-DEPT-002", "department_name": "DEMO 转化部门", "type": 2}, {"id": "DEMO-DEPT-003", "department_name": "DEMO 售后部门", "type": 3}]}}
+    },
+    "user/staff/index": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 8, "list": [{"id": "DEMO-STAFF-001", "nickname": "DEMO 系统管理员", "mobile": "DEMO-ACCOUNT-001", "name": "系统管理员", "group_id": 9, "department_id": "DEMO-DEPT-001", "department_name": "DEMO 直播部门", "createtime": "2026-09-13 09:01:00", "status": "normal", "ordid": 10, "is_super": 1, "memo": "DEMO"}, {"id": "DEMO-STAFF-002", "nickname": "DEMO 直播负责人", "mobile": "DEMO-ACCOUNT-002", "name": "直播负责人", "group_id": 2, "department_id": "DEMO-DEPT-001", "department_name": "DEMO 直播部门", "createtime": "2026-09-13 09:02:00", "status": "normal", "ordid": 20, "is_super": 0, "memo": "DEMO"}, {"id": "DEMO-STAFF-003", "nickname": "DEMO 转化负责人", "mobile": "DEMO-ACCOUNT-003", "name": "转化负责人", "group_id": 3, "department_id": "DEMO-DEPT-002", "department_name": "DEMO 转化部门", "createtime": "2026-09-13 09:03:00", "status": "normal", "ordid": 30, "is_super": 0, "memo": "DEMO"}, {"id": "DEMO-STAFF-004", "nickname": "DEMO 售后负责人", "mobile": "DEMO-ACCOUNT-004", "name": "售后负责人", "group_id": 7, "department_id": "DEMO-DEPT-003", "department_name": "DEMO 售后部门", "createtime": "2026-09-13 09:04:00", "status": "normal", "ordid": 40, "is_super": 0, "memo": "DEMO"}, {"id": "DEMO-STAFF-005", "nickname": "DEMO 主播", "mobile": "DEMO-ACCOUNT-005", "name": "主播", "group_id": 4, "department_id": "DEMO-DEPT-001", "department_name": "DEMO 直播部门", "createtime": "2026-09-13 09:05:00", "status": "normal", "ordid": 50, "is_super": 0, "memo": "DEMO"}, {"id": "DEMO-STAFF-006", "nickname": "DEMO 客服", "mobile": "DEMO-ACCOUNT-006", "name": "客服", "group_id": 5, "department_id": "DEMO-DEPT-002", "department_name": "DEMO 转化部门", "createtime": "2026-09-13 09:06:00", "status": "normal", "ordid": 60, "is_super": 0, "memo": "DEMO"}, {"id": "DEMO-STAFF-007", "nickname": "DEMO 中控", "mobile": "DEMO-ACCOUNT-007", "name": "中控", "group_id": 6, "department_id": "DEMO-DEPT-001", "department_name": "DEMO 直播部门", "createtime": "2026-09-13 09:07:00", "status": "normal", "ordid": 70, "is_super": 0, "memo": "DEMO"}, {"id": "DEMO-STAFF-008", "nickname": "DEMO 售后", "mobile": "DEMO-ACCOUNT-008", "name": "售后", "group_id": 8, "department_id": "DEMO-DEPT-003", "department_name": "DEMO 售后部门", "createtime": "2026-09-13 09:08:00", "status": "normal", "ordid": 80, "is_super": 0, "memo": "DEMO"}], "department_list": [{"id": "DEMO-DEPT-001", "department_name": "DEMO 直播部门"}, {"id": "DEMO-DEPT-002", "department_name": "DEMO 转化部门"}, {"id": "DEMO-DEPT-003", "department_name": "DEMO 售后部门"}], "group_list": [{"id": 1, "name": "超级管理员"}, {"id": 2, "name": "直播部门负责人"}, {"id": 3, "name": "转化部门负责人"}, {"id": 4, "name": "直播员工"}, {"id": 5, "name": "转化客服"}, {"id": 6, "name": "中控员工"}, {"id": 7, "name": "售后部门负责人"}, {"id": 8, "name": "售后员工"}, {"id": 9, "name": "管理员"}], "group_id_type_list": {"1": "超级管理员", "2": "直播部门负责人", "3": "转化部门负责人", "4": "直播员工", "5": "转化客服", "6": "中控员工", "7": "售后部门负责人", "8": "售后员工", "9": "管理员"}}}
+    },
+    "user/staff/getauthinfo": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"id": "DEMO-STAFF-001", "menuPrivCodes": [{"privCode": "demo:read"}], "dashboardPrivCodes": [], "orderPrivCodes": []}}
+    },
+    "user/customservicecates/searchcate": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"list": [{"id": "DEMO-CATE-001", "cate_name": "DEMO 客服分类"}]}}
+    },
+    "user/customservicegroups/index": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "list": [{"id": "DEMO-GROUP-001", "group_name": "DEMO 客服组", "department_id": "DEMO-DEPT-002", "status": 1, "member_num": 1}]}}
+    },
+    "user/customservicegroups/searchgroup": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"list": [{"id": "DEMO-GROUP-001", "group_name": "DEMO 客服组"}]}}
+    },
+    "user/customservicegroupmembers/index": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "list": [{"id": "DEMO-MEMBER-001", "service_group_id": "DEMO-GROUP-001", "uid": "DEMO-STAFF-006", "nickname": "DEMO 客服", "status": 1}]}}
+    },
+    "user/customservicegroupmembers/searchmember": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"list": [{"id": "DEMO-STAFF-006", "nickname": "DEMO 客服", "service_group_id": "DEMO-GROUP-001"}]}}
+    },
+    "user/customservicegroupmembers/getworktime": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"id": "DEMO-MEMBER-001", "start_time": "09:00", "end_time": "18:00"}}
+    },
+    "user/getinfo": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"id": "DEMO-STAFF-001", "nickname": "DEMO 系统管理员", "group_id": 1, "menuPrivCodes": [{"privCode": "demo:read"}]}}
+    },
+    "user/order/tradelist": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "total_money": "99.00", "total_refund_num": 0, "total_refund_money": "0.00", "total_refund_rate": "0.00", "total_use_num": 0, "total_use_money": "0.00", "total_use_rate": "0.00", "total_order_num": 1, "total_reservation_order_num": 0, "reservation_rate": "0.00", "precise_order_num": 0, "quick_refund_order_num": 0, "reservation_rate_precise": "0.00", "total_cost_amount": "20.00", "total_profit_amount": "79.00", "list": [{"id": "DEMO-ORDER-001", "order_id": "DEMO-ORDER-001", "order_no": "DEMO-ORDER-NO-001", "memo": "DEMO 测试订单", "order_status": 1, "order_status_str": "已支付", "user_tel": "DEMO-REDACTED", "user_tel_end": "0000", "follow_status": 0, "follow_status_str": "待跟进", "product_name": "DEMO 测试商品", "pay_time": "2026-09-13 10:00:00", "verify_amount": "99.00", "custom_department_name": "DEMO 转化部门", "custom_service_group_name": "DEMO 客服组", "custom_cate_name": "DEMO 客服分类", "custom_name": "DEMO 客服", "department_name": "DEMO 直播部门", "live_name": "DEMO 直播间", "anchor_name": "DEMO 主播", "console_name": "DEMO 中控", "sale_user_role_str": "主播", "sale_channel_str": "DEMO", "sale_user_name": "DEMO 主播", "refund_type_str": "", "custom_allocation_time": "2026-09-13 10:01:00", "custom_allocation_type_str": "DEMO", "claim_num": 0, "maintenance_department_name": "DEMO 售后部门", "maintenance_name": "DEMO 售后", "cost_amount": "20.00", "profit_amount": "79.00"}], "order_status_list": [{"key": 1, "value": "已支付"}], "follow_status_list": [{"key": 0, "value": "待跟进"}], "order_follow_status_list": [{"key": 0, "value": "待跟进"}], "add_follow_status_list": [{"key": 1, "value": "已联系"}], "department_list": [{"id": "DEMO-DEPT-001", "department_name": "DEMO 直播部门"}], "custom_department_list": [{"id": "DEMO-DEPT-002", "department_name": "DEMO 转化部门"}], "live_room_list": [{"id": "DEMO-LIVE-001", "live_name": "DEMO 直播间"}], "custom_service_group_list": [{"id": "DEMO-GROUP-001", "group_name": "DEMO 客服组"}], "custom_allocation_type_list": [{"key": 1, "value": "DEMO 自动分配"}], "sale_user_role_list": [{"key": 1, "value": "主播"}], "sale_channel_list": [{"key": 1, "value": "DEMO"}], "maintenance_department_list": [{"id": "DEMO-DEPT-003", "department_name": "DEMO 售后部门"}]}}
+    },
+    "user/order/detail": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"id": "DEMO-ORDER-001", "order_no": "DEMO-ORDER-NO-001", "product_name": "DEMO 测试商品", "order_status_str": "已支付", "verify_amount": "99.00", "user_tel": "DEMO-REDACTED", "memo": "DEMO 测试订单"}}
+    },
+    "user/order/uselist": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "list": [{"id": "DEMO-ORDER-001", "order_no": "DEMO-ORDER-NO-001", "use_time": "2026-09-13 11:00:00", "verify_amount": "99.00"}]}}
+    },
+    "user/order/reservationlist": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "list": [{"id": "DEMO-ORDER-001", "order_no": "DEMO-ORDER-NO-001", "reservation_status": 1}]}}
+    },
+    "user/order/refundlist": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 0, "list": []}}
+    },
+    "user/order/claimcustomlist": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "list": [{"id": "DEMO-STAFF-006", "nickname": "DEMO 客服", "service_group_id": "DEMO-GROUP-001"}]}}
+    },
+    "user/order/followlog": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "list": [{"id": "DEMO-FOLLOW-001", "order_id": "DEMO-ORDER-001", "nickname": "DEMO 客服", "memo": "DEMO 跟进记录", "createtime": "2026-09-13 11:10:00"}]}}
+    },
+    "user/order/operatelog": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "list": [{"id": "DEMO-LOG-001", "order_id": "DEMO-ORDER-001", "action": "DEMO_READ", "createtime": "2026-09-13 11:11:00"}]}}
+    },
+    "user/order/claimlog": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 0, "list": []}}
+    },
+    "user/order/searchanchor": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"list": [{"id": "DEMO-STAFF-005", "nickname": "DEMO 主播"}]}}
+    },
+    "user/order/searchconsole": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"list": [{"id": "DEMO-STAFF-007", "nickname": "DEMO 中控"}]}}
+    },
+    "user/order/searchcustom": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"list": [{"id": "DEMO-STAFF-006", "nickname": "DEMO 客服"}]}}
+    },
+    "user/order/searchmaintenance": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"list": [{"id": "DEMO-STAFF-008", "nickname": "DEMO 售后"}]}}
+    },
+    "user/followstatus/index": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 2, "list": [{"id": "DEMO-STATUS-001", "status_name": "DEMO 待跟进", "status": 1}, {"id": "DEMO-STATUS-002", "status_name": "DEMO 已联系", "status": 1}]}}
+    },
+    "financial/statistic": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "total_money": "79.00", "total_in_money": "99.00", "refund_money": "0.00", "total_out_money": "20.00", "total_out_service_money": "2.00", "total_out_commission_money": "18.00", "total_other_money": "0.00", "total_use_num": 1, "total_refund_num": 0, "list": [{"use_day": "2026-09-13", "total_money": "79.00", "total": 1, "total_refund_num": 0, "refund_money": "0.00", "in_money": "99.00", "total_in_money": "99.00", "total_out_money": "20.00", "total_out_service_money": "2.00", "total_out_commission_money": "18.00", "total_other_money": "0.00"}]}}
+    },
+    "financial/settlementlist": {
+      "status_code": 200,
+      "body": {"code": 1, "msg": "success", "data": {"total": 1, "total_money": "79.00", "total_in_money": "99.00", "refund_money": "0.00", "total_out_money": "20.00", "total_out_service_money": "2.00", "total_out_commission_money": "18.00", "total_other_money": "0.00", "total_use_num": 1, "total_refund_num": 0, "list": [{"id": "DEMO-SETTLEMENT-001", "order_no": "DEMO-ORDER-NO-001", "product_id": "DEMO-PRODUCT-001", "product_name": "DEMO 测试商品", "user_tel": "DEMO-REDACTED", "pay_time": "2026-09-13 10:00:00", "verify_amount": "99.00", "cost_amount": "20.00", "profit_amount": "79.00", "total_money": "79.00", "in_money": "99.00", "total_out_service_money": "2.00", "total_out_commission_money": "18.00", "create_time": "2026-09-13 12:00:00"}]}}
+    }
+  }
+}

@@ -59,6 +59,9 @@ async def test_replay_cases_preserves_legacy_request_and_redacts_response(tmp_pa
     recording = json.loads(output_path.read_text(encoding="utf-8"))
     assert recording == {
         "request_id": "demo-staff-index",
+        "method": "POST",
+        "controller": "user",
+        "action": "staff/index",
         "status_code": 200,
         "body": {"code": 1, "msg": "success", "data": {"token": "[REDACTED]"}},
         "headers": {
@@ -68,3 +71,47 @@ async def test_replay_cases_preserves_legacy_request_and_redacts_response(tmp_pa
         },
         "database": {},
     }
+
+
+async def test_replay_cases_sends_legacy_form_body_when_content_type_requires_it(
+    tmp_path,
+):
+    request_path = tmp_path / "cases.jsonl"
+    output_path = tmp_path / "recordings.jsonl"
+    request_path.write_text(
+        json.dumps(
+            {
+                "request_id": "staff-page-1",
+                "method": "POST",
+                "controller": "user",
+                "action": "staff/index",
+                "request": {
+                    "query": {},
+                    "path": {},
+                    "body": {"page": 1, "page_size": 10},
+                    "headers": {
+                        "content-type": "application/x-www-form-urlencoded"
+                    },
+                    "cookies": {},
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.content == b"page=1&page_size=10"
+        return httpx.Response(200, json={"code": 1, "msg": "success", "data": {}})
+
+    await replay_cases(
+        "http://php.test",
+        request_path,
+        output_path,
+        transport=httpx.MockTransport(handler),
+    )
+
+    recording = json.loads(output_path.read_text(encoding="utf-8"))
+    assert recording["method"] == "POST"
+    assert recording["controller"] == "user"
+    assert recording["action"] == "staff/index"

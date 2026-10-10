@@ -14,7 +14,7 @@ if [[ -f "$env_file" ]]; then
 fi
 
 test -L "$base/current"
-test -d "$base/current/frontend"
+test -f "$base/current/frontend/dist/index.html"
 test -x "$base/current/.venv/bin/gunicorn"
 test -d "$base/shared/env"
 test -d "$base/shared/logs"
@@ -48,3 +48,4 @@ do
 done
 
 printf 'deployment checks passed\n'
+

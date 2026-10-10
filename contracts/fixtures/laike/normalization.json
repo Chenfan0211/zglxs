@@ -1,9 +1,8 @@
 {
-  "ignore_paths": [
-    "response.debug"
-  ],
+  "ignore_paths": ["response.data.orders[].private_field"],
   "replace_paths": {
+    "request.headers.access-token": "[REDACTED]",
     "request.headers.authorization": "[REDACTED]",
-    "request.headers.cookie": "[REDACTED]"
+    "response.data.orders[].pay_amount": "[REDACTED]"
   }
 }

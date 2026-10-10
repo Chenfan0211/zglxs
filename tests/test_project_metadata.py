@@ -12,7 +12,7 @@ def test_project_metadata_has_safe_defaults_and_test_extra():
     assert 'python = ">=3.12,<3.13"' in pyproject
     assert "[project.optional-dependencies]" in pyproject
     assert 'DATABASE_URL=""' in env_example
-    assert 'PHP_BASELINE_URL=""' in env_example
+    assert 'PHP_BASELINE_URL=""' not in env_example
     assert ".env" in gitignore
     assert "runtime/" in gitignore
     assert "uploads/" in gitignore

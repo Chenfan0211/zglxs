@@ -5,6 +5,10 @@ import json
 from pathlib import Path
 from typing import Any
 
+from app.api.migration import MigrationRegistry
+from app.core.settings import Settings
+from app.domain.routes import register_business_routes
+
 
 _MODULES = {"organization", "live", "order", "finance", "system"}
 _MODULE_SWITCHES = {
@@ -16,11 +20,15 @@ _MODULE_SWITCHES = {
 }
 _PROOF_FIELDS = (
     "registered",
+    "http_status_codes_passed",
+    "response_schema_passed",
     "permission_cases_passed",
     "error_cases_passed",
     "database_effects_passed",
+    "query_side_effects_passed",
     "transaction_rollback_passed",
     "idempotency_passed",
+    "concurrency_passed",
 )
 
 
@@ -36,6 +44,7 @@ def promote_verified_routes(
     proof = _load_object(proof_path, "proof")
     discovered = _route_index(manifest, "discovered_routes")
     migrated = _route_index(manifest, "migrated_routes")
+    registered = _registered_route_index()
     entries = proof.get("routes")
     if not isinstance(entries, list) or not entries:
         raise PromotionError("proof routes must be a non-empty list")
@@ -52,6 +61,17 @@ def promote_verified_routes(
             raise PromotionError(f"route already migrated: {_display(key)}")
         if key not in discovered:
             raise PromotionError(f"route is not discovered: {_display(key)}")
+        registered_route = registered.get(key)
+        if registered_route is None:
+            raise PromotionError(
+                f"route is not registered in application code: {_display(key)}"
+            )
+        if registered_route.get("module") != route["module"]:
+            raise PromotionError(f"registered module mismatch for {_display(key)}")
+        if not _module_is_enabled(route["module"]):
+            raise PromotionError(
+                f"module switch is disabled for {_display(key)}"
+            )
         promotions.append(route)
 
     manifest["migrated_routes"].extend(promotions)
@@ -119,7 +139,35 @@ def _validate_proof_entry(
         "controller": key[1],
         "action": key[2],
         "module": module,
+        "module_switch": expected_switch,
+        "status": "verified",
+        **{field: entry[field] for field in _PROOF_FIELDS},
+        "response_mismatches": [],
+        "proof_files": list(entry["proof_files"]),
     }
+
+
+def _registered_route_index() -> dict[tuple[str, str, str], dict[str, Any]]:
+    indexed: dict[tuple[str, str, str], dict[str, Any]] = {}
+    for route in _load_registered_business_routes():
+        if not isinstance(route, dict):
+            raise PromotionError("application registry contains a non-object route")
+        key = _route_key(route)
+        if key in indexed:
+            raise PromotionError(f"duplicate application route: {_display(key)}")
+        indexed[key] = route
+    return indexed
+
+
+def _load_registered_business_routes() -> list[dict[str, str]]:
+    settings = Settings(_env_file=None)
+    registry = MigrationRegistry(module_enabled=settings.formal_migration_enabled)
+    register_business_routes(registry, settings)
+    return registry.routes()
+
+
+def _module_is_enabled(module: str) -> bool:
+    return Settings(_env_file=None).formal_migration_enabled(module)
 
 
 def _validate_proof_files(

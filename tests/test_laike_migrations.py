@@ -214,3 +214,54 @@ def test_laike_sync_fields_migration_handles_existing_order_on_sqlite(tmp_path):
         assert not ({"first_discovered_at", "last_updated_at"} & columns_after)
     finally:
         engine.dispose()
+
+
+def test_official_laike_fields_migration_is_reversible_on_sqlite(tmp_path):
+    database_url = f"sqlite+pysqlite:///{tmp_path / 'official-fields.db'}"
+    config = Config(str(Path(__file__).parents[1] / "alembic.ini"))
+    config.set_main_option("sqlalchemy.url", database_url)
+
+    command.upgrade(config, "head")
+    engine = create_engine(database_url)
+    try:
+        assert {
+            column["name"] for column in inspect(engine).get_columns("laike_order")
+        } >= {
+            "account_id",
+            "order_status",
+            "pay_amount_fen",
+            "create_order_time",
+            "update_order_time",
+            "pay_time",
+        }
+        assert {
+            column["name"]
+            for column in inspect(engine).get_columns("laike_sync_cursor")
+        } >= {"page_num", "last_success_at", "last_failure_at"}
+        assert {
+            column["name"] for column in inspect(engine).get_columns("laike_sync_run")
+        } >= {
+            "page_count",
+            "fetched_count",
+            "succeeded_count",
+            "duplicate_count",
+            "error_code",
+        }
+
+        command.downgrade(config, "0005_laike_sync_fields")
+        assert not (
+            {
+                column["name"]
+                for column in inspect(engine).get_columns("laike_order")
+            }
+            & {
+                "account_id",
+                "order_status",
+                "pay_amount_fen",
+                "create_order_time",
+                "update_order_time",
+                "pay_time",
+            }
+        )
+    finally:
+        engine.dispose()

@@ -18,14 +18,13 @@ async def probe(request):
 
 
 @pytest.mark.asyncio
-async def test_migration_status_reports_routes_and_fallback():
+async def test_migration_status_reports_routes_without_php_fallback():
     registry = MigrationRegistry()
     registry.register("Common", "config", ["GET"], probe)
     app = create_app(
         Settings(
             app_env="test",
             database_url=None,
-            php_baseline_url="http://127.0.0.1:18085",
         ),
         registry=registry,
     )
@@ -36,6 +35,6 @@ async def test_migration_status_reports_routes_and_fallback():
     assert response.status_code == 200
     assert response.json() == {
         "migrated_route_count": 1,
-        "fallback_enabled": True,
+        "fallback_enabled": False,
         "manifest_path": "contracts/api-manifest.json",
     }

@@ -5,7 +5,25 @@ import json
 
 import pytest
 
+import tools.promote_routes as promote_routes
 from tools.promote_routes import PromotionError, promote_verified_routes
+
+
+@pytest.fixture(autouse=True)
+def registered_business_route(monkeypatch):
+    monkeypatch.setattr(
+        promote_routes,
+        "_load_registered_business_routes",
+        lambda: [
+            {
+                "method": "POST",
+                "controller": "user",
+                "action": "staff/index",
+                "module": "organization",
+            }
+        ],
+    )
+    monkeypatch.setattr(promote_routes, "_module_is_enabled", lambda module: True)
 
 
 def manifest() -> dict:
@@ -38,11 +56,15 @@ def proof(**overrides) -> dict:
             "action": "staff/index",
         },
         "response_mismatches": [],
+        "http_status_codes_passed": True,
+        "response_schema_passed": True,
         "permission_cases_passed": True,
         "error_cases_passed": True,
         "database_effects_passed": True,
+        "query_side_effects_passed": True,
         "transaction_rollback_passed": True,
         "idempotency_passed": True,
+        "concurrency_passed": True,
         "proof_files": ["php.jsonl", "python.jsonl"],
     }
     record.update(overrides)
@@ -75,6 +97,20 @@ def test_promote_verified_routes_moves_only_fully_verified_route(tmp_path):
             "controller": "user",
             "action": "staff/index",
             "module": "organization",
+            "module_switch": "MIGRATION_ORGANIZATION_ENABLED",
+            "status": "verified",
+            "registered": True,
+            "response_mismatches": [],
+            "http_status_codes_passed": True,
+            "response_schema_passed": True,
+            "permission_cases_passed": True,
+            "error_cases_passed": True,
+            "database_effects_passed": True,
+            "query_side_effects_passed": True,
+            "transaction_rollback_passed": True,
+            "idempotency_passed": True,
+            "concurrency_passed": True,
+            "proof_files": ["php.jsonl", "python.jsonl"],
         }
     ]
     assert result["discovered_routes"] == []
@@ -98,9 +134,13 @@ def test_promote_verified_routes_rejects_any_response_mismatch_without_changes(t
     "field",
     [
         "registered",
+        "http_status_codes_passed",
+        "response_schema_passed",
         "permission_cases_passed",
         "database_effects_passed",
+        "query_side_effects_passed",
         "transaction_rollback_passed",
+        "concurrency_passed",
     ],
 )
 def test_promote_verified_routes_requires_each_safety_proof(tmp_path, field):
@@ -181,3 +221,37 @@ def test_promote_verified_routes_rejects_registered_route_mismatch(tmp_path):
 
     with pytest.raises(PromotionError, match="registered route mismatch"):
         promote_verified_routes(manifest_path, proof_path)
+
+
+def test_promote_verified_routes_rejects_proof_for_route_not_registered_in_code(
+    tmp_path,
+    monkeypatch,
+):
+    manifest_path = tmp_path / "manifest.json"
+    proof_path = tmp_path / "proof.json"
+    write_json(manifest_path, manifest())
+    write_proof_inputs(tmp_path)
+    write_json(proof_path, proof())
+    monkeypatch.setattr(promote_routes, "_load_registered_business_routes", lambda: [])
+
+    with pytest.raises(PromotionError, match="not registered in application code"):
+        promote_verified_routes(manifest_path, proof_path)
+
+    assert json.loads(manifest_path.read_text(encoding="utf-8")) == manifest()
+
+
+def test_promote_verified_routes_rejects_disabled_module_without_changes(
+    tmp_path,
+    monkeypatch,
+):
+    manifest_path = tmp_path / "manifest.json"
+    proof_path = tmp_path / "proof.json"
+    write_json(manifest_path, manifest())
+    write_proof_inputs(tmp_path)
+    write_json(proof_path, proof())
+    monkeypatch.setattr(promote_routes, "_module_is_enabled", lambda module: False)
+
+    with pytest.raises(PromotionError, match="module switch is disabled"):
+        promote_verified_routes(manifest_path, proof_path)
+
+    assert json.loads(manifest_path.read_text(encoding="utf-8")) == manifest()
