@@ -222,3 +222,58 @@ async def test_follow_status_full_crud(order_app):
 async def test_follow_status_add_requires_name(order_app):
     resp = await post(order_app, "/apiv1/user/followstatus/add", headers=DEMO_HEADERS, json={})
     assert resp.status_code == 400
+
+# ---------- 订单字段写操作（order_field_update 包装） ----------
+
+@pytest.mark.asyncio
+async def test_order_updatememo(order_app):
+    resp = await post(
+        order_app,
+        "/apiv1/user/order/updatememo",
+        headers=DEMO_HEADERS,
+        json={"order_id": "DEMO-ORDER-001", "memo": "新备注"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["memo"] == "新备注"
+
+
+@pytest.mark.asyncio
+async def test_order_updatetel(order_app):
+    resp = await post(
+        order_app,
+        "/apiv1/user/order/updatetel",
+        headers=DEMO_HEADERS,
+        json={"order_id": "DEMO-ORDER-001", "tel": "13800000000"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["tel"] == "13800000000"
+
+
+@pytest.mark.asyncio
+async def test_order_setfollowday(order_app):
+    resp = await post(
+        order_app,
+        "/apiv1/user/order/setfollowday",
+        headers=DEMO_HEADERS,
+        json={"order_id": "DEMO-ORDER-001", "follow_day": 7},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["follow_day"] == 7
+
+
+@pytest.mark.asyncio
+async def test_order_release_unlocks(order_app):
+    resp = await post(
+        order_app,
+        "/apiv1/user/order/release",
+        headers=DEMO_HEADERS,
+        json={"order_id": "DEMO-ORDER-001", "lock_flag": False},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["data"]["lock_flag"] is False
+
+
+@pytest.mark.asyncio
+async def test_order_field_update_requires_order_id(order_app):
+    resp = await post(order_app, "/apiv1/user/order/updatememo", headers=DEMO_HEADERS, json={"memo": "x"})
+    assert resp.status_code == 400
