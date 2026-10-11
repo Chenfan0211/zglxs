@@ -32,6 +32,12 @@
 登记后，接口才会进入 `migrated_routes` 并计入正式迁移数量。在证据齐备前，
 写操作接口统一返回「接口尚未迁移」，不会在演示模式下执行写入。
 
+4. **权限体系（未接入业务）**：`app/api/auth.py` 的正式鉴权能力
+   （`RequestAuth`、`AuthContext`、`require_permission`）目前仅由单元测试引用，
+   业务模块统一使用 `_has_demo_session`（校验 `Bearer DEMO-` / `access_token` 前缀）
+   做演示会话判断，尚未接入真实的用户身份与权限校验。这是演示阶段的有意状态，
+   待正式迁移并确定权限模型后再将业务接口切换到 `require_permission`。
+
 ## 已完成
 
 - FastAPI、SQLAlchemy、认证/权限、统一响应、事务和 Repository 基础能力。
