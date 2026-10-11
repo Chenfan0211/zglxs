@@ -22,11 +22,6 @@ celery_app = create_celery_app()
 _service_factory: Callable[[], Any] | None = None
 
 
-def configure_service_factory(factory: Callable[[], Any] | None) -> None:
-    global _service_factory
-    _service_factory = factory
-
-
 def _get_service() -> Any:
     if _service_factory is not None:
         return _service_factory()

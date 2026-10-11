@@ -146,15 +146,6 @@ def _apply_order_names(d, follow, name_map):
     d["custom_allocation_type_str"] = follow.custom_allocation_type
 
 
-def _follow_status_map() -> dict[str, str]:
-    return {
-        "new": "待跟进",
-        "following": "跟进中",
-        "done": "已完成",
-        "invalid": "无效",
-    }
-
-
 def create_order_router() -> APIRouter:
     router = APIRouter()
 
